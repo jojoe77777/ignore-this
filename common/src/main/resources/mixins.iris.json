@@ -25,6 +25,8 @@
     "MixinCamera",
     "MixinChainedJsonException",
     "MixinChunkBatchSizeCalculator",
+    "MixinChunkMap",
+    "MixinPlayerChunkSender",
     "MixinChunkBorderRenderer",
     "MixinClientLanguage",
     "MixinClientPacketListener",

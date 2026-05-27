@@ -19,6 +19,8 @@ public class IrisVertexFormats {
 
 	static {
 		TERRAIN = extend(DefaultVertexFormat.BLOCK,
+			new ExtraAttribute(DefaultVertexFormat.NORMAL_SEMANTIC_NAME,
+				getRequiredElement(DefaultVertexFormat.ENTITY, DefaultVertexFormat.NORMAL_SEMANTIC_NAME).format()),
 			new ExtraAttribute(ENTITY_ELEMENT, GpuFormat.RG16_SINT),
 			new ExtraAttribute(MID_TEXTURE_ELEMENT, GpuFormat.RG32_FLOAT),
 			new ExtraAttribute(TANGENT_ELEMENT, GpuFormat.RGBA8_SNORM),
