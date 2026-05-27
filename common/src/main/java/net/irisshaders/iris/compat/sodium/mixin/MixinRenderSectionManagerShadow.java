@@ -105,6 +105,8 @@ public abstract class MixinRenderSectionManagerShadow implements ShadowRenderLis
 
 	@Inject(method = "<init>", at = @At("TAIL"))
 	private void create(ClientLevel level, int renderDistance, SortBehavior sortBehavior, CommandList commandList, CallbackInfo ci) {
+		if (this.shadowTaskLists == null) this.shadowTaskLists = new EnumMap<>(TaskQueueType.class);
+		if (this.shadowRenderLists == null) this.shadowRenderLists = SortedRenderLists.empty();
 		for (int var6 = 0; var6 < TaskQueueType.values().length; ++var6) {
 			TaskQueueType type = TaskQueueType.values()[var6];
 			shadowTaskLists.put(type, new ArrayDeque<>());
@@ -122,14 +124,17 @@ public abstract class MixinRenderSectionManagerShadow implements ShadowRenderLis
 
 	@WrapMethod(method = "createTerrainRenderList")
 	private boolean updateShadowRenderLists(Camera camera, Viewport viewport, FogParameters fogParameters, int frame, boolean spectator, Operation<Boolean> original) {
-		if (!ShadowRenderingState.areShadowsCurrentlyBeingRendered()) {
+		boolean isShadow = ShadowRenderingState.areShadowsCurrentlyBeingRendered();
+		boolean stateBefore = this.renderListStateIsShadow;
+		boolean needsShadowUpd = this.shadowNeedsRenderListUpdate;
+		if (!isShadow) {
 			this.iris$swapToRegularRenderLists();
 		} else {
 			if (this.shadowNeedsRenderListUpdate) {
 				this.iris$swapToShadowRenderLists();
 			}
 		}
-
+		net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.maybeLog(frame, isShadow, stateBefore, this.renderListStateIsShadow, needsShadowUpd);
 		return original.call(camera, viewport, fogParameters, frame, spectator);
 	}
 

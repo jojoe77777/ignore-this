@@ -1,21 +1,24 @@
 package net.irisshaders.iris.layer;
 
-import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.vertex.MeshData;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.irisshaders.iris.mixin.rendertype.RenderTypeAccessor;
+import net.minecraft.client.renderer.rendertype.PreparedRenderType;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.WeakHashMap;
 
 public class OuterWrappedRenderType extends RenderType {
 	private static final RenderSetup FAKE_SETUP = RenderSetup.builder(RenderPipelines.GUI_TEXTURED).createRenderSetup();
+	private static final Map<PreparedRenderType, RenderingWrapper> PREPARED_WRAPPERS = Collections.synchronizedMap(new WeakHashMap<>());
 	private final RenderingWrapper extra;
 	private final RenderType wrapped;
 
@@ -54,17 +57,30 @@ public class OuterWrappedRenderType extends RenderType {
 	}
 
 	@Override
-	public RenderPipeline pipeline() {
-		return wrapped.pipeline();
+	public PreparedRenderType prepare() {
+		PreparedRenderType prepared = wrapped.prepare();
+		PreparedRenderType wrappedPrepared = new PreparedRenderType(prepared.pipeline(), prepared.outputTarget(), prepared.dynamicTransforms(), prepared.scissorState(), prepared.textures());
+		PREPARED_WRAPPERS.put(wrappedPrepared, extra);
+		return wrappedPrepared;
+	}
+
+	public static void beginDraw(PreparedRenderType preparedRenderType) {
+		RenderingWrapper wrapper = PREPARED_WRAPPERS.get(preparedRenderType);
+		if (wrapper != null) {
+			wrapper.setup();
+		}
+	}
+
+	public static void endDraw(PreparedRenderType preparedRenderType) {
+		RenderingWrapper wrapper = PREPARED_WRAPPERS.get(preparedRenderType);
+		if (wrapper != null) {
+			wrapper.clear();
+		}
 	}
 
 	@Override
-	public void drawFromBuffer(
-		final GpuBuffer vertexBuffer, final GpuBuffer indexBuffer, final VertexFormat.IndexType indexType, final int baseVertex, final int firstIndex, final int indexCount
-	) {
-		extra.setup();
-		wrapped.drawFromBuffer(vertexBuffer, indexBuffer, indexType, baseVertex, firstIndex, indexCount);
-		extra.clear();
+	public RenderPipeline pipeline() {
+		return wrapped.pipeline();
 	}
 
 	@Override
@@ -98,8 +114,8 @@ public class OuterWrappedRenderType extends RenderType {
 	}
 
 	@Override
-	public VertexFormat.Mode mode() {
-		return wrapped.mode();
+	public PrimitiveTopology primitiveTopology() {
+		return wrapped.primitiveTopology();
 	}
 
 	@Override

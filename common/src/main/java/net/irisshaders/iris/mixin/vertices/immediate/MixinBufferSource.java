@@ -1,48 +1,39 @@
 package net.irisshaders.iris.mixin.vertices.immediate;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.irisshaders.iris.vertices.ImmediateState;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.StagedVertexBuffer;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Quick optimization to disable the extended vertex format outside of level rendering if we're using a BufferSource.
  * This is a heuristic that should hopefully work almost always because of how people use BufferSource.
  */
-@Mixin(MultiBufferSource.BufferSource.class)
+@Mixin(StagedVertexBuffer.class)
 public class MixinBufferSource {
-	@WrapOperation(method = "getBuffer",
-		at = @At(value = "INVOKE",
-			target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;getVertexBuilder(Lnet/minecraft/client/renderer/StagedVertexBuffer$Draw;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"))
-	private VertexConsumer iris$redirectBegin(StagedVertexBuffer instance, StagedVertexBuffer.Draw draw, Operation<VertexConsumer> original) {
+	@Inject(method = "getVertexBuilder", at = @At("HEAD"))
+	private void iris$beforeGetVertexBuilder(StagedVertexBuffer.Draw draw, CallbackInfoReturnable<VertexConsumer> cir) {
 		ImmediateState.skipExtension.set(iris$notRenderingLevel());
-		VertexConsumer builder = original.call(instance, draw);
-		ImmediateState.skipExtension.set(false);
-
-		return builder;
 	}
 
-	@Inject(method = "uploadAndDraw",
-		at = @At(value = "INVOKE",
-			target = "Lnet/minecraft/client/renderer/StagedVertexBuffer;upload()V"))
+	@Inject(method = "getVertexBuilder", at = @At("RETURN"))
+	private void iris$afterGetVertexBuilder(StagedVertexBuffer.Draw draw, CallbackInfoReturnable<VertexConsumer> cir) {
+		ImmediateState.skipExtension.set(false);
+	}
+
+	@Inject(method = "upload", at = @At("HEAD"))
 	private void iris$beforeFlushBuffer(CallbackInfo ci) {
 		if (iris$notRenderingLevel()) {
 			ImmediateState.renderWithExtendedVertexFormat = false;
 		}
 	}
 
-	@Inject(method = "uploadAndDraw",
-		at = @At(value = "RETURN",
-			shift = At.Shift.AFTER))
+	@Inject(method = "upload", at = @At("RETURN"))
 	private void iris$afterFlushBuffer(CallbackInfo ci) {
 		if (iris$notRenderingLevel()) {
 			ImmediateState.renderWithExtendedVertexFormat = true;

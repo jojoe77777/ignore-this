@@ -29,7 +29,7 @@ public class MixinGlStateManager_BlendOverride {
 
 	@Shadow
 	@Final
-	private static GlStateManager.BlendState BLEND;
+	private static GlStateManager.BlendState[] BLEND;
 
 	@Inject(method = "_blendFuncSeparate", at = @At("HEAD"), cancellable = true)
 	private static void iris$blendFuncSeparateLock(int srcRgb, int dstRgb, int srcAlpha, int dstAlpha, CallbackInfo ci) {
@@ -37,10 +37,11 @@ public class MixinGlStateManager_BlendOverride {
 			BlendModeStorage.deferBlendFunc(srcRgb, dstRgb, srcAlpha, dstAlpha);
 			ci.cancel();
 		} else if (BlendModeStorage.isBlendUnknown()) {
-			BLEND.srcRgb = srcRgb;
-			BLEND.dstRgb = dstRgb;
-			BLEND.srcAlpha = srcAlpha;
-			BLEND.dstAlpha = dstAlpha;
+			GlStateManager.BlendState blendState = BLEND[0];
+			blendState.srcRgb = srcRgb;
+			blendState.dstRgb = dstRgb;
+			blendState.srcAlpha = srcAlpha;
+			blendState.dstAlpha = dstAlpha;
 			GlStateManager.glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
 			ci.cancel();
 		}

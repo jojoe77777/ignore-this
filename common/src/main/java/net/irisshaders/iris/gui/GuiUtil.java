@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.locale.Language;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -66,7 +67,7 @@ public final class GuiUtil {
 		int vOffset = disabled ? 46 : hovered ? 86 : 66;
 
 		// Sets RenderSystem to use solid white as the tint color for blend mode, and enables blend mode
-		GlStateManager._enableBlend();
+		GlStateManager._enableBlend(0);
 
 		// Top left section
 		guiGraphics.blit(RenderPipelines.GUI_TEXTURED, IRIS_WIDGETS_TEX, x, y, 0, vOffset, halfWidth, halfHeight, 256, 256);
@@ -144,7 +145,7 @@ public final class GuiUtil {
 	 * @return the translated text if found, otherwise the default provided
 	 */
 	public static MutableComponent translateOrDefault(MutableComponent defaultText, String translationDesc, Object... format) {
-		if (I18n.exists(translationDesc)) {
+		if (Language.getInstance().has(translationDesc)) {
 			return Component.translatable(translationDesc, format);
 		}
 		return defaultText;
@@ -194,7 +195,7 @@ public final class GuiUtil {
 		 */
 		public void draw(GuiGraphicsExtractor guiGraphics, int x, int y) {
 			// Sets RenderSystem to use solid white as the tint color for blend mode (1.16), and enables blend mode
-			GlStateManager._enableBlend();
+			GlStateManager._enableBlend(0);
 
 			// Draw the texture to the screen
 			guiGraphics.blit(RenderPipelines.GUI_TEXTURED, IRIS_WIDGETS_TEX, x, y, u, v, width, height, 256, 256);

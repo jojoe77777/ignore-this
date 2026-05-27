@@ -21,11 +21,12 @@ import java.util.Optional;
 
 @Mixin(RenderPipeline.class)
 public class MixinRenderPipeline {
-	@Inject(method = "getVertexFormat", at = @At("RETURN"), cancellable = true)
-	private void iris$change(CallbackInfoReturnable<VertexFormat> cir) {
+	@Inject(method = "getVertexFormatBinding", at = @At("RETURN"), cancellable = true)
+	private void iris$change(int slot, CallbackInfoReturnable<VertexFormat> cir) {
+		if (slot != 0) return;
 		if (Iris.isPackInUseQuick() && ImmediateState.isRenderingLevel) {
 			VertexFormat vf = cir.getReturnValue();
-			RenderPipeline thiss = (RenderPipeline) (Object) this;
+			if (vf == null) return;
 			if (vf.equals(DefaultVertexFormat.BLOCK)) {
 				cir.setReturnValue(IrisVertexFormats.TERRAIN);
 			} else if (vf.equals(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)) {

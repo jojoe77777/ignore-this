@@ -9,7 +9,7 @@ import net.irisshaders.iris.gl.state.StateUpdateNotifiers;
 import net.irisshaders.iris.gl.uniform.DynamicUniformHolder;
 import net.irisshaders.iris.gl.uniform.UniformHolder;
 import net.irisshaders.iris.layer.GbufferPrograms;
-import net.irisshaders.iris.mixin.GlStateManagerAccessor;
+import net.irisshaders.iris.gl.state.GlStateManagerAccessor;
 import net.irisshaders.iris.mixin.statelisteners.BooleanStateAccessor;
 import net.irisshaders.iris.mixin.texture.TextureAtlasAccessor;
 import net.irisshaders.iris.mixinterface.LocalPlayerInterface;
@@ -104,7 +104,7 @@ public final class CommonUniforms {
 		}, StateUpdateNotifiers.bindTextureNotifier);
 
 		uniforms.uniform4i("blendFunc", () -> {
-			GlStateManager.BlendState blend = GlStateManagerAccessor.getBLEND();
+			GlStateManager.BlendState blend = GlStateManagerAccessor.getBLEND()[0];
 
 			if (((BooleanStateAccessor) blend.mode).isEnabled()) {
 				return new Vector4i(blend.srcRgb, blend.dstRgb, blend.srcAlpha, blend.dstAlpha);

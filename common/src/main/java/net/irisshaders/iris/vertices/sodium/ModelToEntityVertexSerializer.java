@@ -11,8 +11,8 @@ import net.irisshaders.iris.vertices.NormalHelper;
 
 public class ModelToEntityVertexSerializer implements VertexSerializer {
 
-	private static final int MIDCOORD = IrisVertexFormats.ENTITY.getOffset(IrisVertexFormats.MID_TEXTURE_ELEMENT);
-	private static final int TANGENT = IrisVertexFormats.ENTITY.getOffset(IrisVertexFormats.TANGENT_ELEMENT);
+	private static final int MIDCOORD = IrisVertexFormats.getOffset(IrisVertexFormats.ENTITY, IrisVertexFormats.MID_TEXTURE_ELEMENT);
+	private static final int TANGENT = IrisVertexFormats.getOffset(IrisVertexFormats.ENTITY, IrisVertexFormats.TANGENT_ELEMENT);
 
 	private static final int SRC_STRIDE = EntityVertex.STRIDE;
 	private static final int DST_STRIDE = IrisVertexFormats.ENTITY.getVertexSize();

@@ -9,7 +9,7 @@ import net.irisshaders.iris.gl.texture.GlTexture;
 import net.irisshaders.iris.gl.texture.TextureAccess;
 import net.irisshaders.iris.gl.texture.TextureType;
 import net.irisshaders.iris.gl.texture.TextureWrapper;
-import net.irisshaders.iris.mixin.GlStateManagerAccessor;
+import net.irisshaders.iris.gl.state.GlStateManagerAccessor;
 import net.irisshaders.iris.pbr.format.TextureFormat;
 import net.irisshaders.iris.pbr.format.TextureFormatLoader;
 import net.irisshaders.iris.pbr.texture.PBRAtlasTexture;

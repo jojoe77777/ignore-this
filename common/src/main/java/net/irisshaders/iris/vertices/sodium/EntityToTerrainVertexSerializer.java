@@ -11,8 +11,8 @@ import net.irisshaders.iris.vertices.NormalHelper;
 import org.lwjgl.system.MemoryUtil;
 
 public class EntityToTerrainVertexSerializer implements VertexSerializer {
-	private static final int MIDCOORD = IrisVertexFormats.TERRAIN.getOffset(IrisVertexFormats.MID_TEXTURE_ELEMENT);
-	private static final int TANGENT = IrisVertexFormats.TERRAIN.getOffset(IrisVertexFormats.TANGENT_ELEMENT);
+	private static final int MIDCOORD = IrisVertexFormats.getOffset(IrisVertexFormats.TERRAIN, IrisVertexFormats.MID_TEXTURE_ELEMENT);
+	private static final int TANGENT = IrisVertexFormats.getOffset(IrisVertexFormats.TERRAIN, IrisVertexFormats.TANGENT_ELEMENT);
 
 	@Override
 	public void serialize(long src, long dst, int vertexCount) {

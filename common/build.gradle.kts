@@ -8,6 +8,7 @@ plugins {
 repositories {
     mavenLocal()
     maven("https://maven.parchmentmc.org/")
+    maven("https://maven.caffeinemc.net/snapshots")
 
     exclusiveContent {
         forRepository {
@@ -51,7 +52,9 @@ dependencies {
 
     implementation("net.fabricmc:fabric-loader:$FABRIC_LOADER_VERSION")
 
-    compileOnly("net.fabricmc.fabric-api:fabric-renderer-api-v1:3.2.9+1172e897d7")
+    compileOnly("net.fabricmc.fabric-api:fabric-block-getter-api-v2:2.0.7+ec56b601c5")
+    compileOnly("net.fabricmc.fabric-api:fabric-resource-loader-v1:2.0.12+d3d84472c5")
+    compileOnly("net.fabricmc.fabric-api:fabric-renderer-api-v1:13.0.4+c80601bb4c")
 
     implementation(SODIUM_DEPENDENCY_FABRIC)
     compileOnly("org.antlr:antlr4-runtime:4.13.1")

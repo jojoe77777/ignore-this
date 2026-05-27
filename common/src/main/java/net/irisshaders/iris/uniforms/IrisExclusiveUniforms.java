@@ -197,7 +197,7 @@ public class IrisExclusiveUniforms {
 		HitResult hitResult = Minecraft.getInstance().hitResult;
 		if (Minecraft.getInstance().level != null && ((GameRendererAccessor) Minecraft.getInstance().gameRenderer).shouldRenderBlockOutlineA() && hitResult != null && hitResult.getType() == HitResult.Type.BLOCK) {
 			BlockPos blockPos4 = ((BlockHitResult) hitResult).getBlockPos();
-			return blockPos4.getCenter().subtract(Minecraft.getInstance().gameRenderer.mainCamera().position()).toVector3f();
+			return Vec3.atCenterOf(blockPos4).subtract(Minecraft.getInstance().gameRenderer.mainCamera().position()).toVector3f();
 		}
 
 		return new Vector3f(-256.0f);

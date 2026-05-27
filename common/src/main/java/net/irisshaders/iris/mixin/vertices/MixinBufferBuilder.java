@@ -1,5 +1,6 @@
 package net.irisshaders.iris.mixin.vertices;
 
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -49,13 +50,10 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 	private boolean skipEndVertexOnce;
 	@Shadow
 	@Final
-	private VertexFormat.Mode mode;
+	private PrimitiveTopology primitiveTopology;
 	@Shadow
 	@Final
 	private VertexFormat format;
-	@Shadow
-	@Final
-	private int[] offsetsByElement;
 	@Shadow
 	@Final
 	private boolean blockFormat;
@@ -86,36 +84,33 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 	@Shadow
 	public abstract VertexConsumer setNormal(float f, float g, float h);
 
-	@Shadow
-	protected abstract long beginElement(VertexFormatElement vertexFormatElement);
-
-	@ModifyVariable(method = "<init>", at = @At(value = "FIELD", target = "Lcom/mojang/blaze3d/vertex/VertexFormatElement;POSITION:Lcom/mojang/blaze3d/vertex/VertexFormatElement;"), argsOnly = true)
-	private VertexFormat iris$extendFormat(VertexFormat format) {
-		boolean iris$isTerrain = false;
-		injectNormalAndUV1 = false;
-
+	@ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
+	private static VertexFormat iris$extendFormat(VertexFormat format) {
 		if (ImmediateState.skipExtension.get() || !ImmediateState.isRenderingLevel || !Iris.isPackInUseQuick()) {
 			return format;
 		}
 
 		if (format.equals(DefaultVertexFormat.BLOCK) || format.equals(IrisVertexFormats.TERRAIN)) {
-			extending = true;
-			iris$isTerrain = true;
-			injectNormalAndUV1 = false;
 			return IrisVertexFormats.TERRAIN;
 		} else if (format.equals(DefaultVertexFormat.ENTITY) || format.equals(IrisVertexFormats.ENTITY)) {
-			extending = true;
-			iris$isTerrain = false;
-			injectNormalAndUV1 = false;
 			return IrisVertexFormats.ENTITY;
 		} else if (format.equals(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR) || format.equals(IrisVertexFormats.GLYPH)) {
-			extending = true;
-			iris$isTerrain = false;
-			injectNormalAndUV1 = true;
 			return IrisVertexFormats.GLYPH;
 		}
 
 		return format;
+	}
+
+	@Inject(method = "<init>", at = @At("RETURN"))
+	private void iris$captureExtensionState(ByteBufferBuilder bb, PrimitiveTopology topo, VertexFormat fmt, CallbackInfo ci) {
+		injectNormalAndUV1 = false;
+		extending = false;
+		if (this.format == IrisVertexFormats.TERRAIN || this.format == IrisVertexFormats.ENTITY) {
+			extending = true;
+		} else if (this.format == IrisVertexFormats.GLYPH) {
+			extending = true;
+			injectNormalAndUV1 = true;
+		}
 	}
 
 	@Redirect(method = "addVertex(FFFIFFIIFFF)V", at = @At(value = "FIELD", target = "Lcom/mojang/blaze3d/vertex/BufferBuilder;blockFormat:Z"))
@@ -125,20 +120,27 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 
 	@Inject(method = "addVertex(FFF)Lcom/mojang/blaze3d/vertex/VertexConsumer;", at = @At("RETURN"))
 	private void injectMidBlock(float x, float y, float z, CallbackInfoReturnable<VertexConsumer> cir) {
-		if ((this.elementsToFill & IrisVertexFormats.MID_BLOCK_ELEMENT.mask()) != 0) {
-			long midBlockOffset = this.beginElement(IrisVertexFormats.MID_BLOCK_ELEMENT);
+		if (!extending) {
+			return;
+		}
+
+		long midBlockOffset = iris$getCustomElementPointer(IrisVertexFormats.MID_BLOCK_ELEMENT);
+		if (midBlockOffset != -1L) {
 			MemoryAccess.setInt(midBlockOffset, ExtendedDataHelper.computeMidBlock(x, y, z, currentLocalPosX, currentLocalPosY, currentLocalPosZ));
 			byte currentBlockEmission = -1;
 			MemoryAccess.setByte(midBlockOffset + 3, currentBlockEmission);
 		}
 
-		if ((this.elementsToFill & IrisVertexFormats.ENTITY_ELEMENT.mask()) != 0) {
-			long offset = this.beginElement(IrisVertexFormats.ENTITY_ELEMENT);
+		long offset = iris$getCustomElementPointer(IrisVertexFormats.ENTITY_ELEMENT);
+		if (offset != -1L) {
 			// ENTITY_ELEMENT
 			MemoryAccess.setShort(offset, (short) currentBlock);
 			MemoryAccess.setShort(offset + 2, currentRenderType);
-		} else if ((this.elementsToFill & IrisVertexFormats.ENTITY_ID_ELEMENT.mask()) != 0) {
-			long offset = this.beginElement(IrisVertexFormats.ENTITY_ID_ELEMENT);
+		} else {
+			offset = iris$getCustomElementPointer(IrisVertexFormats.ENTITY_ID_ELEMENT);
+		}
+
+		if (offset != -1L && format.contains(IrisVertexFormats.ENTITY_ID_ELEMENT)) {
 			// ENTITY_ID_ELEMENT
 			MemoryAccess.setShort(offset, (short) CapturedRenderingState.INSTANCE.getCurrentRenderedEntity());
 			MemoryAccess.setShort(offset + 2, (short) CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity());
@@ -158,11 +160,7 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 			return;
 		}
 
-		// We can't fill these yet.
-		this.elementsToFill = this.elementsToFill & ~IrisVertexFormats.MID_TEXTURE_ELEMENT.mask();
-		this.elementsToFill = this.elementsToFill & ~IrisVertexFormats.TANGENT_ELEMENT.mask();
-
-		if (injectNormalAndUV1 && this.elementsToFill != (this.elementsToFill & ~VertexFormatElement.NORMAL.mask())) {
+		if (injectNormalAndUV1 && iris$hasPendingNormal()) {
 			this.setNormal(0, 1, 0);
 		}
 
@@ -171,7 +169,7 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 			return;
 		}
 
-		if (mode != VertexFormat.Mode.QUADS && mode != VertexFormat.Mode.TRIANGLES) {
+		if (primitiveTopology != PrimitiveTopology.QUADS && primitiveTopology != PrimitiveTopology.TRIANGLES) {
 			return;
 		}
 
@@ -179,7 +177,7 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 
 		iris$vertexCount++;
 
-		if (mode == VertexFormat.Mode.QUADS && iris$vertexCount == 4 || mode == VertexFormat.Mode.TRIANGLES && iris$vertexCount == 3) {
+		if (primitiveTopology == PrimitiveTopology.QUADS && iris$vertexCount == 4 || primitiveTopology == PrimitiveTopology.TRIANGLES && iris$vertexCount == 3) {
 			fillExtendedData(iris$vertexCount);
 		}
 	}
@@ -221,9 +219,9 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 		midU /= vertexAmount;
 		midV /= vertexAmount;
 
-		int midTexOffset = this.offsetsByElement[IrisVertexFormats.MID_TEXTURE_ELEMENT.id()];
-		int normalOffset = this.offsetsByElement[VertexFormatElement.NORMAL.id()];
-		int tangentOffset = this.offsetsByElement[IrisVertexFormats.TANGENT_ELEMENT.id()];
+		int midTexOffset = IrisVertexFormats.getOffset(format, IrisVertexFormats.MID_TEXTURE_ELEMENT);
+		int normalOffset = IrisVertexFormats.getOffset(format, DefaultVertexFormat.NORMAL_SEMANTIC_NAME);
+		int tangentOffset = IrisVertexFormats.getOffset(format, IrisVertexFormats.TANGENT_ELEMENT);
 		if (vertexAmount == 3) {
 			// NormalHelper.computeFaceNormalTri(normal, polygon);	// Removed to enable smooth shaded triangles. Mods rendering triangles with bad normals need to recalculate their normals manually or otherwise shading might be inconsistent.
 
@@ -260,5 +258,19 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 		}
 
 		Arrays.fill(vertexOffsets, 0);
+	}
+
+	@Unique
+	private long iris$getCustomElementPointer(String elementName) {
+		VertexFormatElement element = format.getElement(elementName);
+		if (element == null) {
+			return -1L;
+		}
+		return vertexPointer + element.offset();
+	}
+
+	@Unique
+	private boolean iris$hasPendingNormal() {
+		return (this.elementsToFill & (1 << 5)) != 0;
 	}
 }

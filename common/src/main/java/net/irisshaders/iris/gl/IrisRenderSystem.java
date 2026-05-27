@@ -11,7 +11,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import net.irisshaders.iris.Iris;
 import net.irisshaders.iris.gl.sampler.SamplerLimits;
 import net.irisshaders.iris.gl.texture.TextureType;
-import net.irisshaders.iris.mixin.GlStateManagerAccessor;
+import net.irisshaders.iris.gl.state.GlStateManagerAccessor;
 import net.irisshaders.iris.mixin.GpuDeviceAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -338,13 +338,13 @@ public class IrisRenderSystem {
 	public static void disableBufferBlend(int buffer) {
 		RenderSystem.assertOnRenderThread();
 		GL32C.glDisablei(GL32C.GL_BLEND, buffer);
-		((BooleanStateExtended) GlStateManagerAccessor.getBLEND().mode).setUnknownState();
+		((BooleanStateExtended) GlStateManagerAccessor.getBLEND()[0].mode).setUnknownState();
 	}
 
 	public static void enableBufferBlend(int buffer) {
 		RenderSystem.assertOnRenderThread();
 		GL32C.glEnablei(GL32C.GL_BLEND, buffer);
-		((BooleanStateExtended) GlStateManagerAccessor.getBLEND().mode).setUnknownState();
+		((BooleanStateExtended) GlStateManagerAccessor.getBLEND()[0].mode).setUnknownState();
 	}
 
 	public static void blendFuncSeparatei(int buffer, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {

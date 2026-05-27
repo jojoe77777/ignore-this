@@ -14,7 +14,6 @@ import net.irisshaders.iris.uniforms.CapturedRenderingState;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderBuffers;
@@ -51,7 +50,7 @@ public class HandRenderer {
 
 	public HandRenderer() {
 		submitNodeCollector = new SubmitNodeStorage();
-		featureRenderDispatcher = new FeatureRenderDispatcher(submitNodeCollector, Minecraft.getInstance().getModelManager(), bufferSource.bufferSource(), Minecraft.getInstance().getAtlasManager(), bufferSource.outlineBufferSource(), bufferSource.crumblingBufferSource(), Minecraft.getInstance().font, Minecraft.getInstance().gameRenderer.gameRenderState());
+		featureRenderDispatcher = new FeatureRenderDispatcher(bufferSource, Minecraft.getInstance().getModelManager(), Minecraft.getInstance().getAtlasManager(), Minecraft.getInstance().font, Minecraft.getInstance().gameRenderer.gameRenderState());
 	}
 
 	private PoseStack setupGlState(GameRenderer gameRenderer, CameraRenderState camera, Matrix4fc modelMatrix, float tickDelta) {
@@ -132,8 +131,7 @@ public class HandRenderer {
 
 	public void renderTranslucent(Matrix4fc modelMatrix, float tickDelta, Camera camera, CameraRenderState cameraState, GameRenderer gameRenderer, WorldRenderingPipeline pipeline) {
 		if (!canRender(camera, gameRenderer) || !gameRenderer.itemInHandRenderer.iris$isAnyHandTranslucent() || !Iris.isPackInUseQuick()) {
-			submitNodeCollector.endFrame();
-			bufferSource.bufferSource().endFrame();
+			bufferSource.endFrame();
 
 			return;
 		}
@@ -158,8 +156,7 @@ public class HandRenderer {
 		poseStack.popPose();
 
 		Profiler.get().pop();
-		submitNodeCollector.endFrame();
-		bufferSource.bufferSource().endFrame();
+		bufferSource.endFrame();
 
 		RenderSystem.restoreProjectionMatrix();
 
@@ -183,6 +180,6 @@ public class HandRenderer {
 	}
 
 	public void endRender() {
-		featureRenderDispatcher.renderAllFeatures();
+		featureRenderDispatcher.renderAllFeatures(submitNodeCollector);
 	}
 }

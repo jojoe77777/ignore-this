@@ -3,11 +3,17 @@ package net.irisshaders.iris.mixin.entity_render_context;
 import net.irisshaders.iris.mixinterface.ModelStorage;
 import net.irisshaders.iris.uniforms.CapturedRenderingState;
 import net.irisshaders.iris.vertices.ImmediateState;
-import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.feature.TextFeatureRenderer;
+import net.minecraft.util.FormattedCharSequence;
+import org.joml.Matrix4fc;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(SubmitNodeStorage.TextSubmit.class)
+@Mixin(TextFeatureRenderer.Submit.class)
 public class MixinTextSubmit implements ModelStorage {
 	@Unique
 	private int entityId, beId, itemId;
@@ -33,5 +39,10 @@ public class MixinTextSubmit implements ModelStorage {
 	@Override
 	public boolean iris$wasBE() {
 		return isRenderingBEs;
+	}
+
+	@Inject(method = "<init>", at = @At("RETURN"))
+	private void iris$captureOnInit(Matrix4fc pose, float x, float y, FormattedCharSequence string, boolean dropShadow, Font.DisplayMode displayMode, int lightCoords, int color, int backgroundColor, int outlineColor, CallbackInfo ci) {
+		iris$capture();
 	}
 }

@@ -9,6 +9,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
 import com.mojang.logging.LogUtils;
@@ -104,16 +105,16 @@ public class ExtendedShader extends GlProgram implements IrisProgram {
 		((ShaderInstanceInterface) this).setShouldSkip(SkipList.NONE);
 
 		boolean has1 = false, has2 = false, has0 = false;
-		if (vertexFormat.contains(VertexFormatElement.UV)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV0_SEMANTIC_NAME)) {
 			this.hasUV = true;
 			has0 = true;
 		}
 
-		if (vertexFormat.contains(VertexFormatElement.UV1)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV1_SEMANTIC_NAME)) {
 			has1 = true;
 		}
 
-		if (vertexFormat.contains(VertexFormatElement.UV2)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV2_SEMANTIC_NAME)) {
 			has2 = true;
 		}
 

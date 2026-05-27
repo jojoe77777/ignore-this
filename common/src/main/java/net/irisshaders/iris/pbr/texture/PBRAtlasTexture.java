@@ -42,7 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.OptionalInt;
+import java.util.Optional;
 
 public class PBRAtlasTexture extends AbstractTexture implements PBRDumpable {
 	protected final TextureAtlas atlasTexture;
@@ -264,13 +264,13 @@ public class PBRAtlasTexture extends AbstractTexture implements PBRDumpable {
 			for (int level = 0; level < this.mipLevelCount; level++) {
 				try (RenderPass renderPass = RenderSystem.getDevice()
 					.createCommandEncoder()
-					.createRenderPass(() -> "Animate " + this.location, this.mipViews[level], OptionalInt.empty())) {
+					.createRenderPass(() -> "Animate " + this.location, this.mipViews[level], Optional.empty())) {
 					renderPass.setPipeline(RenderPipelines.ANIMATE_SPRITE_BLIT);
 
 					for (int n = 0; n < staticSprites.size(); n++) {
 						renderPass.bindTexture("Sprite", scratchTextures.get(n)[level], gpuSampler);
 						renderPass.setUniform("SpriteAnimationInfo", gpuBuffer.slice(n * uboBlockSize + level * spriteUboSize, SpriteContents.UBO_SIZE));
-						renderPass.draw(0, 6);
+						renderPass.draw(6, 1, 0, 0);
 					}
 				}
 			}
@@ -296,7 +296,7 @@ public class PBRAtlasTexture extends AbstractTexture implements PBRDumpable {
 				for (int i = 0; i <= this.maxMipLevel; i++) {
 					try (RenderPass renderPass = RenderSystem.getDevice()
 						.createCommandEncoder()
-						.createRenderPass(() -> "Animate " + this.location, this.mipViews[i], OptionalInt.empty())) {
+						.createRenderPass(() -> "Animate " + this.location, this.mipViews[i], Optional.empty())) {
 						for (SpriteContents.AnimationState animationState2 : this.animatedTexturesStates) {
 							if (animationState2.needsToDraw()) {
 								animationState2.drawToAtlas(renderPass, animationState2.getDrawUbo(i));

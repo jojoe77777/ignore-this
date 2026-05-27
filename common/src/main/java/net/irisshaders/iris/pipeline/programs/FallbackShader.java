@@ -7,8 +7,8 @@ import com.mojang.blaze3d.pipeline.BindGroupLayout;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.irisshaders.iris.compat.SkipList;
 import net.irisshaders.iris.gl.blending.BlendModeOverride;
 import net.irisshaders.iris.gl.blending.DepthColorStorage;
@@ -46,15 +46,15 @@ public class FallbackShader extends GlProgram implements IrisProgram {
 
 
 		boolean has1 = false, has2 = false, has0 = false;
-		if (vertexFormat.contains(VertexFormatElement.UV)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV0_SEMANTIC_NAME)) {
 			has0 = true;
 		}
 
-		if (vertexFormat.contains(VertexFormatElement.UV1)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV1_SEMANTIC_NAME)) {
 			has1 = true;
 		}
 
-		if (vertexFormat.contains(VertexFormatElement.UV2)) {
+		if (vertexFormat.contains(DefaultVertexFormat.UV2_SEMANTIC_NAME)) {
 			has2 = true;
 		}
 

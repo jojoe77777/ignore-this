@@ -1,16 +1,16 @@
 package net.irisshaders.iris.vertices;
 
 import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormatElement;
-import net.irisshaders.iris.Iris;
 
 public class IrisVertexFormats {
-	public static final VertexFormatElement ENTITY_ELEMENT;
-	public static final VertexFormatElement ENTITY_ID_ELEMENT;
-	public static final VertexFormatElement MID_TEXTURE_ELEMENT;
-	public static final VertexFormatElement TANGENT_ELEMENT;
-	public static final VertexFormatElement MID_BLOCK_ELEMENT;
+	public static final String ENTITY_ELEMENT = "mc_Entity";
+	public static final String ENTITY_ID_ELEMENT = "iris_Entity";
+	public static final String MID_TEXTURE_ELEMENT = "mc_midTexCoord";
+	public static final String TANGENT_ELEMENT = "at_tangent";
+	public static final String MID_BLOCK_ELEMENT = "at_midBlock";
 
 	public static final VertexFormat TERRAIN;
 	public static final VertexFormat ENTITY;
@@ -18,84 +18,58 @@ public class IrisVertexFormats {
 	public static final VertexFormat CLOUDS;
 
 	static {
-		int LAST_UV = 0;
+		TERRAIN = extend(DefaultVertexFormat.BLOCK,
+			new ExtraAttribute(ENTITY_ELEMENT, GpuFormat.RG16_SINT),
+			new ExtraAttribute(MID_TEXTURE_ELEMENT, GpuFormat.RG32_FLOAT),
+			new ExtraAttribute(TANGENT_ELEMENT, GpuFormat.RGBA8_SNORM),
+			new ExtraAttribute(MID_BLOCK_ELEMENT, GpuFormat.RGBA8_SINT));
 
-		for (int i = 0; i < VertexFormatElement.MAX_COUNT; i++) {
-			VertexFormatElement element = VertexFormatElement.byId(i);
-			if (element != null) {
-				LAST_UV = Math.max(LAST_UV, element.index());
-			}
-		}
+		ENTITY = extend(DefaultVertexFormat.ENTITY,
+			new ExtraAttribute(ENTITY_ID_ELEMENT, GpuFormat.RGBA16_UINT),
+			new ExtraAttribute(MID_TEXTURE_ELEMENT, GpuFormat.RG32_FLOAT),
+			new ExtraAttribute(TANGENT_ELEMENT, GpuFormat.RGBA8_SNORM));
 
-		ENTITY_ELEMENT = VertexFormatElement.register(getNextVertexFormatElementId(), 0, GpuFormat.RG16_SINT);
-		ENTITY_ID_ELEMENT = VertexFormatElement.register(getNextVertexFormatElementId(), 3, GpuFormat.RGBA16_UINT);
-		MID_TEXTURE_ELEMENT = VertexFormatElement.register(getNextVertexFormatElementId(), 0, GpuFormat.RG32_FLOAT);
-		TANGENT_ELEMENT = VertexFormatElement.register(getNextVertexFormatElementId(), 0, GpuFormat.RGBA8_SNORM);
-		MID_BLOCK_ELEMENT = VertexFormatElement.register(getNextVertexFormatElementId(), 0, GpuFormat.RGB8_SINT);
-
-		TERRAIN = VertexFormat.builder()
-			.add("Position", VertexFormatElement.POSITION)
-			.add("Color", VertexFormatElement.COLOR)
-			.add("UV0", VertexFormatElement.UV0)
-			.add("UV2", VertexFormatElement.UV2)
-			.add("Normal", VertexFormatElement.NORMAL)
-			.padding(1)
-			.add("mc_Entity", ENTITY_ELEMENT)
-			.add("mc_midTexCoord", MID_TEXTURE_ELEMENT)
-			.add("at_tangent", TANGENT_ELEMENT)
-			.add("at_midBlock", MID_BLOCK_ELEMENT)
-			.padding(1)
+		GLYPH = VertexFormat.builder(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getStepRate())
+			.addAttribute(DefaultVertexFormat.POSITION_SEMANTIC_NAME, getRequiredElement(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, DefaultVertexFormat.POSITION_SEMANTIC_NAME).format())
+			.addAttribute(DefaultVertexFormat.UV0_SEMANTIC_NAME, getRequiredElement(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, DefaultVertexFormat.UV0_SEMANTIC_NAME).format())
+			.addAttribute(DefaultVertexFormat.UV2_SEMANTIC_NAME, getRequiredElement(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, DefaultVertexFormat.UV2_SEMANTIC_NAME).format())
+			.addAttribute(DefaultVertexFormat.COLOR_SEMANTIC_NAME, getRequiredElement(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, DefaultVertexFormat.COLOR_SEMANTIC_NAME).format())
+			.addAttribute(DefaultVertexFormat.NORMAL_SEMANTIC_NAME, getRequiredElement(DefaultVertexFormat.ENTITY, DefaultVertexFormat.NORMAL_SEMANTIC_NAME).format())
+			.addAttribute(ENTITY_ID_ELEMENT, GpuFormat.RGBA16_UINT)
+			.addAttribute(MID_TEXTURE_ELEMENT, GpuFormat.RG32_FLOAT)
+			.addAttribute(TANGENT_ELEMENT, GpuFormat.RGBA8_SNORM)
 			.build();
 
-		ENTITY = VertexFormat.builder()
-			.add("Position", VertexFormatElement.POSITION)
-			.add("Color", VertexFormatElement.COLOR)
-			.add("UV0", VertexFormatElement.UV0)
-			.add("UV1", VertexFormatElement.UV1)
-			.add("UV2", VertexFormatElement.UV2)
-			.add("Normal", VertexFormatElement.NORMAL)
-			.padding(1)
-			.add("iris_Entity", ENTITY_ID_ELEMENT)
-			.add("mc_midTexCoord", MID_TEXTURE_ELEMENT)
-			.add("at_tangent", TANGENT_ELEMENT)
-			.build();
-
-		GLYPH = VertexFormat.builder()
-			.add("Position", VertexFormatElement.POSITION)
-			.add("UV0", VertexFormatElement.UV0)
-			.add("UV2", VertexFormatElement.UV2)
-			.add("Color", VertexFormatElement.COLOR)
-			.add("Normal", VertexFormatElement.NORMAL)
-			.padding(1)
-			.add("iris_Entity", ENTITY_ID_ELEMENT)
-			.add("mc_midTexCoord", MID_TEXTURE_ELEMENT)
-			.add("at_tangent", TANGENT_ELEMENT)
-			.build();
-
-		CLOUDS = VertexFormat.builder()
-			.add("Position", VertexFormatElement.POSITION)
-			.add("Color", VertexFormatElement.COLOR)
-			.add("Normal", VertexFormatElement.NORMAL)
-			.padding(1)
-			.build();
+		CLOUDS = DefaultVertexFormat.POSITION_COLOR_NORMAL;
 	}
 
-	private static void debug(VertexFormat format) {
-		Iris.logger.info("Vertex format: " + format + " with byte size " + format.getVertexSize());
-		int byteIndex = 0;
-		for (VertexFormatElement element : format.getElements()) {
-			Iris.logger.info(element + " @ " + byteIndex + " is " + element.id());
-			byteIndex += element.byteSize();
+	public static int getOffset(VertexFormat format, String elementName) {
+		VertexFormatElement element = format.getElement(elementName);
+		if (element == null) {
+			throw new IllegalArgumentException("Missing element '" + elementName + "' in " + format);
 		}
+		return element.offset();
 	}
 
-	private static int getNextVertexFormatElementId() {
-		int id = 0;
-		while (VertexFormatElement.byId(id) != null) {
-			if (++id >= VertexFormatElement.MAX_COUNT) {
-				throw new RuntimeException("Too many mods registering VertexFormatElements");
-			}
+	private static VertexFormat extend(VertexFormat base, ExtraAttribute... extras) {
+		VertexFormat.Builder builder = VertexFormat.builder(base.getStepRate());
+		for (VertexFormatElement element : base.getElements()) {
+			builder.addAttribute(element.name(), element.format());
 		}
-		return id;
+		for (ExtraAttribute extra : extras) {
+			builder.addAttribute(extra.name(), extra.format());
+		}
+		return builder.build();
+	}
+
+	private static VertexFormatElement getRequiredElement(VertexFormat format, String name) {
+		VertexFormatElement element = format.getElement(name);
+		if (element == null) {
+			throw new IllegalStateException("Missing required element '" + name + "' in " + format);
+		}
+		return element;
+	}
+
+	private record ExtraAttribute(String name, GpuFormat format) {
 	}
 }

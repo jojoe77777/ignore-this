@@ -2,11 +2,12 @@ package net.irisshaders.iris.pipeline;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.irisshaders.iris.features.FeatureFlags;
@@ -26,7 +27,7 @@ import net.irisshaders.iris.gl.sampler.SamplerLimits;
 import net.irisshaders.iris.gl.shader.ShaderCompileException;
 import net.irisshaders.iris.gl.state.FogMode;
 import net.irisshaders.iris.gl.texture.TextureAccess;
-import net.irisshaders.iris.mixin.GlStateManagerAccessor;
+import net.irisshaders.iris.gl.state.GlStateManagerAccessor;
 import net.irisshaders.iris.mixinterface.CustomPass;
 import net.irisshaders.iris.pathways.CenterDepthSampler;
 import net.irisshaders.iris.pathways.FullScreenQuadRenderer;
@@ -57,6 +58,7 @@ import org.lwjgl.opengl.GL15C;
 import org.lwjgl.opengl.GL20C;
 import org.lwjgl.opengl.GL30C;
 import org.lwjgl.opengl.GL43C;
+import java.util.Optional;
 import org.lwjgl.opengl.GL46C;
 
 import java.util.Map;
@@ -241,25 +243,26 @@ public class FinalPassRenderer {
 				}
 			}
 
-			GpuBuffer indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS).getBuffer(6);
-			VertexFormat.IndexType type = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS).type();
+			RenderSystem.AutoStorageIndexBuffer quadIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+			GpuBuffer indices = quadIndices.getBuffer(6);
+			IndexType type = quadIndices.type();
 
-			try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Final pass", Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTextureView(), OptionalInt.empty())) {
+			try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Final pass", Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTextureView(), Optional.empty())) {
 				renderPass.setPipeline(CompositeRenderer.COMPOSITE_PIPELINE);
 				renderPass.setIndexBuffer(indices, type);
-				renderPass.setVertexBuffer(0, FullScreenQuadRenderer.INSTANCE.getQuad());
+				renderPass.setVertexBuffer(0, FullScreenQuadRenderer.INSTANCE.getQuad().slice());
 
 				renderPass.iris$setCustomPass(STATE);
 
 				finalPass.program.use();
 
 				BlendModeOverride.restore();
-				GlStateManager._disableBlend();
+				GlStateManager._disableBlend(0);
 
 				// program is the identifier for final :shrug:
 				this.customUniforms.push(finalPass.program);
 
-				renderPass.drawIndexed(0, 0, 6, 1);
+				renderPass.drawIndexed(6, 1, 0, 0, 0);
 			}
 			GLDebug.popGroup();
 		} else {

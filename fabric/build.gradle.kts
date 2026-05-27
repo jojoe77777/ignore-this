@@ -15,6 +15,7 @@ val MOD_VERSION: String by rootProject.extra
 
 repositories {
     mavenLocal()
+    maven("https://maven.caffeinemc.net/snapshots")
     exclusiveContent {
         forRepository {
             maven {
@@ -56,11 +57,12 @@ dependencies {
     // Fabric API modules
     addEmbeddedFabricModule("fabric-api-base")
     addEmbeddedFabricModule("fabric-key-mapping-api-v1")
+    addEmbeddedFabricModule("fabric-rendering-v1")
     addRuntimeFabricModule("fabric-block-getter-api-v2")
     addRuntimeFabricModule("fabric-rendering-fluids-v1")
     addRuntimeFabricModule("fabric-resource-loader-v0")
     addRuntimeFabricModule("fabric-lifecycle-events-v1")
-    addRuntimeFabricModule("fabric-renderer-api-v1")
+    // fabric-renderer-api-v1 removed: incompatible with 26.2-pre-1 (renderScreenEffect was renamed/removed).
 
     implementation(SODIUM_DEPENDENCY_FABRIC)
     implementAndInclude("org.antlr:antlr4-runtime:4.13.1")
@@ -99,6 +101,7 @@ loom {
             configName = "Fabric Client"
             ideConfigGenerated(true)
             runDir("run")
+            programArgs("--quickPlaySingleplayer", "New World")
            // vmArgs("-Dmixin.debug.export=true")
            // vmArg("-XX:+AllowEnhancedClassRedefinition")
         }

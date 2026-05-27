@@ -1,13 +1,11 @@
 package net.irisshaders.iris.mixin;
 
 import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.irisshaders.iris.gl.blending.DepthColorStorage;
 import net.irisshaders.iris.vertices.ImmediateState;
-import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL33C;
 import org.lwjgl.opengl.GL43C;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -31,13 +29,13 @@ public class MixinGlStateManager_DepthColorOverride {
 		}
 	}
 
-	@Redirect(method = "_drawElements", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glDrawElements(IIIJ)V"), remap = false)
+	@Redirect(method = "_drawElements", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL33C;glDrawElements(IIIJ)V"), remap = false)
 	private static void iris$modify(int mode, int count, int type, long indices) {
 		if (mode == GL43C.GL_TRIANGLES && ImmediateState.usingTessellation) {
 			mode = GL43C.GL_PATCHES;
 		}
 
-		GL43C.glDrawElements(mode, count, type, indices);
+		GL33C.glDrawElements(mode, count, type, indices);
 	}
 
 	@Inject(method = "_glUseProgram", at = @At("TAIL"), remap = false)

@@ -15,12 +15,12 @@ import org.lwjgl.system.MemoryUtil;
 public class GlyphExtVertexSerializer implements VertexSerializer {
 	private static final int OFFSET_POSITION = 0;
 
-	private static final int OFFSET_MID_TEXTURE = IrisVertexFormats.GLYPH.getOffset(IrisVertexFormats.MID_TEXTURE_ELEMENT);
-	private static final int OFFSET_COLOR =  DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getOffset(VertexFormatElement.COLOR);
-	private static final int OFFSET_TEXTURE =  DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getOffset(VertexFormatElement.UV0);
-	private static final int OFFSET_LIGHT =  DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getOffset(VertexFormatElement.UV2);
-	private static final int OFFSET_NORMAL = IrisVertexFormats.GLYPH.getOffset(VertexFormatElement.NORMAL);
-	private static final int OFFSET_TANGENT = IrisVertexFormats.GLYPH.getOffset(IrisVertexFormats.TANGENT_ELEMENT);
+	private static final int OFFSET_MID_TEXTURE = IrisVertexFormats.getOffset(IrisVertexFormats.GLYPH, IrisVertexFormats.MID_TEXTURE_ELEMENT);
+	private static final int OFFSET_COLOR = DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getElement(DefaultVertexFormat.COLOR_SEMANTIC_NAME).offset();
+	private static final int OFFSET_TEXTURE = DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getElement(DefaultVertexFormat.UV0_SEMANTIC_NAME).offset();
+	private static final int OFFSET_LIGHT = DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getElement(DefaultVertexFormat.UV2_SEMANTIC_NAME).offset();
+	private static final int OFFSET_NORMAL = IrisVertexFormats.getOffset(IrisVertexFormats.GLYPH, DefaultVertexFormat.NORMAL_SEMANTIC_NAME);
+	private static final int OFFSET_TANGENT = IrisVertexFormats.getOffset(IrisVertexFormats.GLYPH, IrisVertexFormats.TANGENT_ELEMENT);
 	private static final QuadViewEntity quad = new QuadViewEntity();
 	private static final Vector3f saveNormal = new Vector3f();
 	private static final int STRIDE = IrisVertexFormats.GLYPH.getVertexSize();

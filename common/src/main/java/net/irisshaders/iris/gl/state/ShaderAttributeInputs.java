@@ -2,6 +2,7 @@ package net.irisshaders.iris.gl.state;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormatElement;
 
 public class ShaderAttributeInputs {
 	private boolean ie;
@@ -22,7 +23,7 @@ public class ShaderAttributeInputs {
 
 		this.newLines = isLines;
 
-		format.getElementAttributeNames().forEach(name -> {
+		format.getElements().stream().map(VertexFormatElement::name).forEach(name -> {
 			if ("Color".equals(name)) {
 				color = true;
 			}

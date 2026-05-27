@@ -1,13 +1,20 @@
 package net.irisshaders.iris.mixin.entity_render_context;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.irisshaders.iris.mixinterface.ModelStorage;
 import net.irisshaders.iris.uniforms.CapturedRenderingState;
 import net.irisshaders.iris.vertices.ImmediateState;
-import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(SubmitNodeStorage.ModelSubmit.class)
+@Mixin(ModelFeatureRenderer.Submit.class)
 public class MixinModelSubmit implements ModelStorage {
 	@Unique
 	private int entityId, beId, itemId;
@@ -33,5 +40,10 @@ public class MixinModelSubmit implements ModelStorage {
 	@Override
 	public boolean iris$wasBE() {
 		return isRenderingBEs;
+	}
+
+	@Inject(method = "<init>", at = @At("RETURN"))
+	private <S> void iris$captureOnInit(RenderType renderType, PoseStack.Pose pose, Model<? super S> model, S state, int lightCoords, int overlayCoords, int tintedColor, TextureAtlasSprite sprite, PoseStack.Pose sheetedDecalPose, CallbackInfo ci) {
+		iris$capture();
 	}
 }

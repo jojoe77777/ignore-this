@@ -1,12 +1,13 @@
 package net.irisshaders.iris.pathways.colorspace;
 
 import com.google.common.collect.ImmutableSet;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.VertexFormat;
 import net.irisshaders.iris.gl.IrisRenderSystem;
 import net.irisshaders.iris.gl.framebuffer.GlFramebuffer;
 import net.irisshaders.iris.gl.program.Program;
@@ -28,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.OptionalInt;
+import java.util.Optional;
 
 import static net.irisshaders.iris.pipeline.CompositeRenderer.COMPOSITE_PIPELINE;
 
@@ -100,10 +101,11 @@ public class ColorSpaceFragmentConverter implements ColorSpaceConverter {
 		if (colorSpace == ColorSpace.SRGB) return;
 
 		this.target = targetImage;
-		GpuBuffer indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS).getBuffer(6);
-		VertexFormat.IndexType type = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS).type();
+		RenderSystem.AutoStorageIndexBuffer quadIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+		GpuBuffer indices = quadIndices.getBuffer(6);
+		IndexType type = quadIndices.type();
 
-		try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Color space", Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTextureView(), OptionalInt.empty())) {
+		try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(() -> "Color space", Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTextureView(), Optional.empty())) {
 			pass.setPipeline(COMPOSITE_PIPELINE);
 			pass.iris$setCustomPass(EMPTY);
 
@@ -111,9 +113,9 @@ public class ColorSpaceFragmentConverter implements ColorSpaceConverter {
 			framebuffer.bind();
 
 			pass.setIndexBuffer(indices, type);
-			pass.setVertexBuffer(0, FullScreenQuadRenderer.INSTANCE.getQuad());
+			pass.setVertexBuffer(0, FullScreenQuadRenderer.INSTANCE.getQuad().slice());
 
-			pass.drawIndexed(0, 0, 6, 1);
+			pass.drawIndexed(6, 1, 0, 0, 0);
 		}
 		Program.unbind();
 		framebuffer.bindAsReadBuffer();
