@@ -24,8 +24,10 @@ public class GlyphExtVertexSerializer implements VertexSerializer {
 	private static final QuadViewEntity quad = new QuadViewEntity();
 	private static final Vector3f saveNormal = new Vector3f();
 	private static final int STRIDE = IrisVertexFormats.GLYPH.getVertexSize();
+	private static final int SOURCE_STRIDE = DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getVertexSize();
+	private static final int DEFAULT_NORMAL = NormI8.pack(0.0f, 0.0f, 1.0f, 0.0f);
 
-	private static void endQuad(float uSum, float vSum, long src, long dst) {
+	private static void endQuad(float uSum, float vSum, long dst) {
 		uSum *= 0.25f;
 		vSum *= 0.25f;
 
@@ -51,27 +53,54 @@ public class GlyphExtVertexSerializer implements VertexSerializer {
 
 	@Override
 	public void serialize(long src, long dst, int vertexCount) {
-		float uSum = 0.0f, vSum = 0.0f;
+		final short entity = (short) CapturedRenderingState.INSTANCE.getCurrentRenderedEntity();
+		final short blockEntity = (short) CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity();
+		final short item = (short) CapturedRenderingState.INSTANCE.getCurrentRenderedItem();
 
-		for (int i = 0; i < vertexCount; i++) {
-			float u = MemoryAccess.getFloat(src + OFFSET_TEXTURE);
-			float v = MemoryAccess.getFloat(src + OFFSET_TEXTURE + 4);
+		int vertexIndex = 0;
 
-			uSum += u;
-			vSum += v;
+		while (vertexIndex < vertexCount) {
+			int batchSize = Math.min(4, vertexCount - vertexIndex);
+			float uSum = 0.0f;
+			float vSum = 0.0f;
+			long batchStartDst = dst;
+			long lastVertexDst = dst;
 
-			MemoryIntrinsics.copyMemory(src, dst, 28);
+			for (int batchVertex = 0; batchVertex < batchSize; batchVertex++) {
+				float u = MemoryAccess.getFloat(src + OFFSET_TEXTURE);
+				float v = MemoryAccess.getFloat(src + OFFSET_TEXTURE + 4);
 
-			MemoryAccess.setShort(dst + 32, (short) CapturedRenderingState.INSTANCE.getCurrentRenderedEntity());
-			MemoryAccess.setShort(dst + 34, (short) CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity());
-			MemoryAccess.setShort(dst + 36, (short) CapturedRenderingState.INSTANCE.getCurrentRenderedItem());
+				uSum += u;
+				vSum += v;
 
-			if (i != 3) {
-				src += DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR.getVertexSize();
-				dst += IrisVertexFormats.GLYPH.getVertexSize();
+				MemoryIntrinsics.copyMemory(src, dst, 28);
+
+				MemoryAccess.setShort(dst + 32, entity);
+				MemoryAccess.setShort(dst + 34, blockEntity);
+				MemoryAccess.setShort(dst + 36, item);
+				MemoryAccess.setFloat(dst + OFFSET_MID_TEXTURE, u);
+				MemoryAccess.setFloat(dst + OFFSET_MID_TEXTURE + 4, v);
+				MemoryAccess.setInt(dst + OFFSET_NORMAL, DEFAULT_NORMAL);
+				MemoryAccess.setInt(dst + OFFSET_TANGENT, 0);
+
+				lastVertexDst = dst;
+				src += SOURCE_STRIDE;
+				dst += STRIDE;
 			}
-		}
 
-		endQuad(uSum, vSum, src, dst);
+			if (batchSize == 4) {
+				endQuad(uSum, vSum, lastVertexDst);
+			} else {
+				float midU = uSum / batchSize;
+				float midV = vSum / batchSize;
+				for (int batchVertex = 0; batchVertex < batchSize; batchVertex++) {
+					long vertexDst = batchStartDst + (long) batchVertex * STRIDE;
+					MemoryAccess.setFloat(vertexDst + OFFSET_MID_TEXTURE, midU);
+					MemoryAccess.setFloat(vertexDst + OFFSET_MID_TEXTURE + 4, midV);
+				}
+			}
+
+			vertexIndex += batchSize;
+		}
 	}
 }

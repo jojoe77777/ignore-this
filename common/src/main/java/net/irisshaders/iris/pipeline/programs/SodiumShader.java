@@ -58,6 +58,15 @@ import java.util.function.Supplier;
 
 public class SodiumShader implements ChunkShaderInterface {
 	private static final int SUB_TEXEL_PRECISION_BITS = 5;
+	private static final boolean PORT_DEBUG_ENABLED = false;
+	private static final org.slf4j.Logger PORT_LOG = org.slf4j.LoggerFactory.getLogger("SodiumPort");
+	private static long lastMatrixLogNs = 0L;
+	private static long matrixBadSinceLog = 0L;
+	private static long matrixCallSinceLog = 0L;
+	private static long regionOffsetCallSinceLog = 0L;
+	private static float maxRegionOffsetSinceLog = 0f;
+	private static float minDetSinceLog = Float.POSITIVE_INFINITY;
+	private static float maxDetSinceLog = Float.NEGATIVE_INFINITY;
 
 	private final GlUniformMatrix4f uniformModelViewMatrix;
 	private final GlUniformMatrix4f uniformModelViewMatrixInv;
@@ -144,6 +153,14 @@ public class SodiumShader implements ChunkShaderInterface {
 		if (uniformRegionOffset != null) {
 			uniformRegionOffset.set(x, y, z);
 		}
+		if (PORT_DEBUG_ENABLED) {
+			regionOffsetCallSinceLog++;
+			float mag = Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z)));
+			if (mag > maxRegionOffsetSinceLog) maxRegionOffsetSinceLog = mag;
+			if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(z)) {
+				PORT_LOG.warn("MTX: bad u_RegionOffset = ({}, {}, {})", x, y, z);
+			}
+		}
 	}
 
 	@Override
@@ -158,7 +175,18 @@ public class SodiumShader implements ChunkShaderInterface {
 			uniformModelViewMatrix.set(matrix);
 		}
 
+		float det = 0.0f;
+		if (PORT_DEBUG_ENABLED) {
+			matrixCallSinceLog++;
+			det = matrix.determinant();
+			if (det < minDetSinceLog) minDetSinceLog = det;
+			if (det > maxDetSinceLog) maxDetSinceLog = det;
+		}
+
 		Matrix4f invertedMatrix = matrix.invert(new Matrix4f());
+
+		boolean invBad = PORT_DEBUG_ENABLED && !isFinite4(invertedMatrix);
+		if (invBad) matrixBadSinceLog++;
 
 		if (uniformModelViewMatrixInv != null) {
 			uniformModelViewMatrixInv.set(invertedMatrix);
@@ -168,6 +196,38 @@ public class SodiumShader implements ChunkShaderInterface {
 			Matrix3f normalMatrix = invertedMatrix.transpose3x3(new Matrix3f());
 			uniformNormalMatrix.set(normalMatrix);
 		}
+
+		if (PORT_DEBUG_ENABLED) {
+			long now = System.nanoTime();
+			if (now - lastMatrixLogNs > 2_000_000_000L) {
+				lastMatrixLogNs = now;
+				PORT_LOG.info("MTX: mvCalls={} bad={} det=[{},{}] regOffCalls={} regOffMax={} pass={}",
+					matrixCallSinceLog, matrixBadSinceLog, minDetSinceLog, maxDetSinceLog,
+					regionOffsetCallSinceLog, maxRegionOffsetSinceLog,
+					isShadowPass ? "SHADOW" : "MAIN");
+				matrixCallSinceLog = 0;
+				matrixBadSinceLog = 0;
+				regionOffsetCallSinceLog = 0;
+				maxRegionOffsetSinceLog = 0f;
+				minDetSinceLog = Float.POSITIVE_INFINITY;
+				maxDetSinceLog = Float.NEGATIVE_INFINITY;
+			}
+			if (invBad) {
+				PORT_LOG.warn("MTX: bad inverted MV — det={} | mv=[{} {} {} {} | {} {} {} {} | {} {} {} {} | {} {} {} {}]",
+					det,
+					matrix.m00(), matrix.m01(), matrix.m02(), matrix.m03(),
+					matrix.m10(), matrix.m11(), matrix.m12(), matrix.m13(),
+					matrix.m20(), matrix.m21(), matrix.m22(), matrix.m23(),
+					matrix.m30(), matrix.m31(), matrix.m32(), matrix.m33());
+			}
+		}
+	}
+
+	private static boolean isFinite4(Matrix4f m) {
+		return Float.isFinite(m.m00()) && Float.isFinite(m.m01()) && Float.isFinite(m.m02()) && Float.isFinite(m.m03())
+			&& Float.isFinite(m.m10()) && Float.isFinite(m.m11()) && Float.isFinite(m.m12()) && Float.isFinite(m.m13())
+			&& Float.isFinite(m.m20()) && Float.isFinite(m.m21()) && Float.isFinite(m.m22()) && Float.isFinite(m.m23())
+			&& Float.isFinite(m.m30()) && Float.isFinite(m.m31()) && Float.isFinite(m.m32()) && Float.isFinite(m.m33());
 	}
 
 	@Override

@@ -86,11 +86,11 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 
 	@ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
 	private static VertexFormat iris$extendFormat(VertexFormat format) {
-		if (ImmediateState.skipExtension.get() || !ImmediateState.isRenderingLevel || !Iris.isPackInUseQuick()) {
+		if (ImmediateState.isImmediateVertexExtensionDebugDisabled(format) || ImmediateState.skipExtension.get() || !ImmediateState.isRenderingLevel || !Iris.isPackInUseQuick()) {
 			return format;
 		}
 
-		if (format.equals(DefaultVertexFormat.BLOCK) || format.equals(IrisVertexFormats.TERRAIN)) {
+		if (format.equals(IrisVertexFormats.TERRAIN)) {
 			return IrisVertexFormats.TERRAIN;
 		} else if (format.equals(DefaultVertexFormat.ENTITY) || format.equals(IrisVertexFormats.ENTITY)) {
 			return IrisVertexFormats.ENTITY;
@@ -105,6 +105,10 @@ public abstract class MixinBufferBuilder implements VertexConsumer, BlockSensiti
 	private void iris$captureExtensionState(ByteBufferBuilder bb, PrimitiveTopology topo, VertexFormat fmt, CallbackInfo ci) {
 		injectNormalAndUV1 = false;
 		extending = false;
+		if (ImmediateState.isImmediateVertexExtensionDebugDisabled(this.format)) {
+			return;
+		}
+
 		if (this.format == IrisVertexFormats.TERRAIN || this.format == IrisVertexFormats.ENTITY) {
 			extending = true;
 		} else if (this.format == IrisVertexFormats.GLYPH) {

@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import java.util.WeakHashMap;
 public class OuterWrappedRenderType extends RenderType {
 	private static final RenderSetup FAKE_SETUP = RenderSetup.builder(RenderPipelines.GUI_TEXTURED).createRenderSetup();
 	private static final Map<PreparedRenderType, RenderingWrapper> PREPARED_WRAPPERS = Collections.synchronizedMap(new WeakHashMap<>());
+	private static final ThreadLocal<Map<PreparedRenderType, Integer>> ACTIVE_WRAPPER_DEPTH = ThreadLocal.withInitial(IdentityHashMap::new);
 	private final RenderingWrapper extra;
 	private final RenderType wrapped;
 
@@ -67,14 +69,32 @@ public class OuterWrappedRenderType extends RenderType {
 	public static void beginDraw(PreparedRenderType preparedRenderType) {
 		RenderingWrapper wrapper = PREPARED_WRAPPERS.get(preparedRenderType);
 		if (wrapper != null) {
-			wrapper.setup();
+			Map<PreparedRenderType, Integer> activeWrapperDepth = ACTIVE_WRAPPER_DEPTH.get();
+			int depth = activeWrapperDepth.getOrDefault(preparedRenderType, 0);
+			activeWrapperDepth.put(preparedRenderType, depth + 1);
+
+			if (depth == 0) {
+				wrapper.setup();
+			}
 		}
 	}
 
 	public static void endDraw(PreparedRenderType preparedRenderType) {
 		RenderingWrapper wrapper = PREPARED_WRAPPERS.get(preparedRenderType);
 		if (wrapper != null) {
-			wrapper.clear();
+			Map<PreparedRenderType, Integer> activeWrapperDepth = ACTIVE_WRAPPER_DEPTH.get();
+			Integer depth = activeWrapperDepth.get(preparedRenderType);
+
+			if (depth == null) {
+				return;
+			}
+
+			if (depth <= 1) {
+				activeWrapperDepth.remove(preparedRenderType);
+				wrapper.clear();
+			} else {
+				activeWrapperDepth.put(preparedRenderType, depth - 1);
+			}
 		}
 	}
 

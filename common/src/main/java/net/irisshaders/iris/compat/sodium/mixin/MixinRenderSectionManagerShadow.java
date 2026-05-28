@@ -134,7 +134,9 @@ public abstract class MixinRenderSectionManagerShadow implements ShadowRenderLis
 				this.iris$swapToShadowRenderLists();
 			}
 		}
-		net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.maybeLog(frame, isShadow, stateBefore, this.renderListStateIsShadow, needsShadowUpd);
+		if (net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.ENABLED) {
+			net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.maybeLog(frame, isShadow, stateBefore, this.renderListStateIsShadow, needsShadowUpd);
+		}
 		return original.call(camera, viewport, fogParameters, frame, spectator);
 	}
 

@@ -73,11 +73,19 @@ public class MixinGameRenderer {
 
 	@Redirect(method = "renderItemInHand", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;submitHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;Lnet/minecraft/client/player/LocalPlayer;I)V"))
 	private void iris$disableVanillaHandRendering(ItemInHandRenderer itemInHandRenderer, float tickDelta, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, LocalPlayer localPlayer, int light) {
-		if (Iris.isPackInUseQuick()) {
+		if (Iris.isPackInUseQuick() && !HandRenderer.INSTANCE.iris$useVanillaHandRendering()) {
 			return;
 		}
 
-		itemInHandRenderer.submitHandsWithItems(tickDelta, poseStack, submitNodeCollector, localPlayer, light);
+		boolean wasRenderingLevel = ImmediateState.isRenderingLevel;
+		ImmediateState.isRenderingHand = true;
+		ImmediateState.isRenderingLevel = true;
+		try {
+			itemInHandRenderer.submitHandsWithItems(tickDelta, poseStack, submitNodeCollector, localPlayer, light);
+		} finally {
+			ImmediateState.isRenderingLevel = wasRenderingLevel;
+			ImmediateState.isRenderingHand = false;
+		}
 	}
 
 	@Inject(method = "renderLevel", at = @At("TAIL"))

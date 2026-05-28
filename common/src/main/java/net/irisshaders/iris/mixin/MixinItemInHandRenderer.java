@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.irisshaders.iris.Iris;
 import net.irisshaders.iris.mixinterface.ItemInHandInterface;
 import net.irisshaders.iris.pathways.HandRenderer;
+import net.irisshaders.iris.vertices.ImmediateState;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.ItemInHandRenderer;
@@ -30,6 +31,10 @@ public abstract class MixinItemInHandRenderer implements ItemInHandInterface {
 
 	@Inject(method = "submitArmWithItem", at = @At("HEAD"), cancellable = true)
 	private void iris$skipTranslucentHands(AbstractClientPlayer abstractClientPlayer, float f, float g, InteractionHand interactionHand, float h, ItemStack itemStack, float i, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int j, CallbackInfo ci) {
+		if (ImmediateState.isRenderingHand) {
+			return;
+		}
+
 		if (Iris.isPackInUseQuick()) {
 			if (HandRenderer.INSTANCE.isRenderingSolid() == HandRenderer.INSTANCE.isHandTranslucent(itemStack)) {
 				ci.cancel();
@@ -43,8 +48,13 @@ public abstract class MixinItemInHandRenderer implements ItemInHandInterface {
 	@Override
 	public void iris$renderHandsWithCustomRenderer(HandRenderer handRenderer, float tickDelta, PoseStack poseStack, SubmitNodeStorage submitNodeCollector, @Nullable LocalPlayer player, int packedLightCoords) {
 		customRenderer = handRenderer;
-		this.submitHandsWithItems(tickDelta, poseStack, submitNodeCollector, player, packedLightCoords);
-		customRenderer = null;
+		ImmediateState.isRenderingHand = true;
+		try {
+			this.submitHandsWithItems(tickDelta, poseStack, submitNodeCollector, player, packedLightCoords);
+		} finally {
+			ImmediateState.isRenderingHand = false;
+			customRenderer = null;
+		}
 	}
 
 

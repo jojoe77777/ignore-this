@@ -16,6 +16,7 @@ import org.joml.Vector4f;
 import org.lwjgl.system.MemoryUtil;
 
 public class XHFPTerrainVertex implements ChunkVertexEncoder {
+	private static final boolean PORT_DEBUG_ENABLED = false;
 	private static final int POSITION_MAX_VALUE = 1 << 20;
 	private static final int TEXTURE_MAX_VALUE = 1 << 15;
 	private static final float MODEL_ORIGIN = 8.0f;
@@ -104,9 +105,64 @@ public class XHFPTerrainVertex implements ChunkVertexEncoder {
 		return (int) Math.floor(x);
 	}
 
+	private static final org.slf4j.Logger PORT_LOG = org.slf4j.LoggerFactory.getLogger("SodiumPort");
+	private static long lastQuadProbeNs = 0L;
+	private static long quadCount = 0L;
+	private static long badQuadCount = 0L;
+	private static long badPosVertexCount = 0L;
+	private static float worstQuadBBoxSinceLog = 0f;
+	private static float worstAbsPosSinceLog = 0f;
+
 	@Override
 	public long write(long ptr,
 					  int material, Vertex[] vertices, int section) {
+		if (PORT_DEBUG_ENABLED) {
+			// Probe: detect anomalously large quads or vertices way outside chunk-local range.
+			// A chunk quad's vertices should all be within ~1 block of each other and within [-1, 17].
+			float minX = vertices[0].x, maxX = minX;
+			float minY = vertices[0].y, maxY = minY;
+			float minZ = vertices[0].z, maxZ = minZ;
+			boolean anyBadPos = false;
+			for (int i = 0; i < 4; i++) {
+				float vx = vertices[i].x, vy = vertices[i].y, vz = vertices[i].z;
+				if (vx < minX) minX = vx; if (vx > maxX) maxX = vx;
+				if (vy < minY) minY = vy; if (vy > maxY) maxY = vy;
+				if (vz < minZ) minZ = vz; if (vz > maxZ) maxZ = vz;
+				float absMax = Math.max(Math.abs(vx), Math.max(Math.abs(vy), Math.abs(vz)));
+				if (absMax > worstAbsPosSinceLog) worstAbsPosSinceLog = absMax;
+				if (absMax > 64f || !Float.isFinite(vx) || !Float.isFinite(vy) || !Float.isFinite(vz)) {
+					badPosVertexCount++;
+					anyBadPos = true;
+				}
+			}
+			float bboxDim = Math.max(maxX - minX, Math.max(maxY - minY, maxZ - minZ));
+			if (bboxDim > worstQuadBBoxSinceLog) worstQuadBBoxSinceLog = bboxDim;
+			quadCount++;
+			if (bboxDim > 4.0f || anyBadPos) {
+				badQuadCount++;
+				if (badQuadCount < 20) {
+					PORT_LOG.warn("QUAD-BAD: bbox={} v0=({},{},{}) v1=({},{},{}) v2=({},{},{}) v3=({},{},{}) sec={}",
+						bboxDim,
+						vertices[0].x, vertices[0].y, vertices[0].z,
+						vertices[1].x, vertices[1].y, vertices[1].z,
+						vertices[2].x, vertices[2].y, vertices[2].z,
+						vertices[3].x, vertices[3].y, vertices[3].z,
+						section);
+				}
+			}
+			long now = System.nanoTime();
+			if (now - lastQuadProbeNs > 2_000_000_000L) {
+				lastQuadProbeNs = now;
+				PORT_LOG.info("QUAD: quads={} bad={} badVerts={} worstBBox={} worstAbsPos={}",
+					quadCount, badQuadCount, badPosVertexCount, worstQuadBBoxSinceLog, worstAbsPosSinceLog);
+				quadCount = 0;
+				badQuadCount = 0;
+				badPosVertexCount = 0;
+				worstQuadBBoxSinceLog = 0f;
+				worstAbsPosSinceLog = 0f;
+			}
+		}
+
 		// Calculate the center point of the texture region which is mapped to the quad
 		float texCentroidU = 0.0f;
 		float texCentroidV = 0.0f;

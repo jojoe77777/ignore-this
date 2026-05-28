@@ -366,5 +366,7 @@ public class VanillaTransformer {
 		}
 
 		root.rename("gl_ProjectionMatrix", "iris_ProjMat");
+
+		// (diagnostic gl_Position override removed — fix moved to sodium ChunkSectionsToRenderMixin)
 	}
 }

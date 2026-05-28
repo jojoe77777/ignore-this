@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class IrisServerInstr {
+	public static final boolean ENABLED = false;
 	private static final Logger LOG = LoggerFactory.getLogger("SodiumPort");
 
 	private static long lastLog = 0;
@@ -21,22 +22,27 @@ public final class IrisServerInstr {
 	private static double lastMoveY = Double.NaN;
 	private static double lastMoveZ = Double.NaN;
 
-	public static synchronized void markPendingInstance() { markPendingInstance++; maybeLog(); }
-	public static synchronized void markPendingStatic() { markPendingStatic++; maybeLog(); }
+	public static synchronized void markPendingInstance() { if (!ENABLED) return; markPendingInstance++; maybeLog(); }
+	public static synchronized void markPendingStatic() { if (!ENABLED) return; markPendingStatic++; maybeLog(); }
 	public static synchronized void moveCall(double x, double y, double z) {
+		if (!ENABLED) return;
 		moveCalls++;
 		lastMoveX = x; lastMoveY = y; lastMoveZ = z;
 		maybeLog();
 	}
-	public static synchronized void updateChunkTracking() { updateChunkTracking++; maybeLog(); }
-	public static synchronized void updatePlayerPos() { updatePlayerPos++; maybeLog(); }
-	public static synchronized void updatePlayerStatus() { updatePlayerStatus++; maybeLog(); }
-	public static synchronized void gctsVisNull() { gcts_visNull++; maybeLog(); }
-	public static synchronized void gctsChunkNull() { gcts_chunkNull++; maybeLog(); }
-	public static synchronized void gctsOk() { gcts_ok++; maybeLog(); }
-	public static synchronized void pcsMark() { pcsMark++; maybeLog(); }
+	public static synchronized void updateChunkTracking() { if (!ENABLED) return; updateChunkTracking++; maybeLog(); }
+	public static synchronized void updatePlayerPos() { if (!ENABLED) return; updatePlayerPos++; maybeLog(); }
+	public static synchronized void updatePlayerStatus() { if (!ENABLED) return; updatePlayerStatus++; maybeLog(); }
+	public static synchronized void gctsVisNull() { if (!ENABLED) return; gcts_visNull++; maybeLog(); }
+	public static synchronized void gctsChunkNull() { if (!ENABLED) return; gcts_chunkNull++; maybeLog(); }
+	public static synchronized void gctsOk() { if (!ENABLED) return; gcts_ok++; maybeLog(); }
+	public static synchronized void pcsMark() { if (!ENABLED) return; pcsMark++; maybeLog(); }
 
 	private static void maybeLog() {
+		if (!ENABLED) {
+			return;
+		}
+
 		long now = System.currentTimeMillis();
 		if (now - lastLog > 2000) {
 			lastLog = now;

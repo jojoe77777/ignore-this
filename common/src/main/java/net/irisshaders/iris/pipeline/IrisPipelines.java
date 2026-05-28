@@ -3,12 +3,17 @@ package net.irisshaders.iris.pipeline;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.datafixers.types.Func;
 import it.unimi.dsi.fastutil.Function;
+import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.irisshaders.iris.Iris;
 import net.irisshaders.iris.pathways.HandRenderer;
 import net.irisshaders.iris.pipeline.programs.ShaderKey;
+import net.irisshaders.iris.shaderpack.materialmap.NamespacedId;
+import net.irisshaders.iris.shaderpack.materialmap.WorldRenderingSettings;
 import net.irisshaders.iris.shaderpack.loading.ProgramId;
 import net.irisshaders.iris.shadows.ShadowRenderingState;
+import net.irisshaders.iris.uniforms.CapturedRenderingState;
+import net.irisshaders.iris.vertices.ImmediateState;
 import net.minecraft.client.renderer.RenderPipelines;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,25 +22,35 @@ import java.util.Map;
 import static net.irisshaders.iris.pipeline.programs.ShaderOverrides.isBlockEntities;
 
 public class IrisPipelines {
+	private static final NamespacedId PLAYER = new NamespacedId("minecraft", "player");
+	private static final NamespacedId CURRENT_PLAYER = new NamespacedId("minecraft", "current_player");
 	private static final Map<RenderPipeline, Function<IrisRenderingPipeline, ShaderKey>> coreShaderMap = new Object2ObjectArrayMap<>();
 	private static final Map<RenderPipeline, Function<IrisRenderingPipeline, ShaderKey>> coreShaderMapShadow = new Object2ObjectArrayMap<>();
 	private static final Function<IrisRenderingPipeline, ShaderKey> FAKE_FUNCTION = p -> null;
+	private static final int DEBUG_BINARY_SEARCH_BUCKET_COUNT = 2;
+	private static final int DEBUG_BINARY_SEARCH_DISABLED_BUCKET = -1; // Set to 0 or 1 to re-enable the pipeline-map binary search.
 
 	static {
-		assignToMain(RenderPipelines.SOLID_BLOCK, p -> ShaderKey.TERRAIN_SOLID);
-		assignToMain(RenderPipelines.CUTOUT_BLOCK, p -> ShaderKey.TERRAIN_CUTOUT);
-		assignToMain(RenderPipelines.SOLID_TERRAIN, p -> ShaderKey.TERRAIN_SOLID);
-		assignToMain(RenderPipelines.CUTOUT_TERRAIN, p -> ShaderKey.TERRAIN_CUTOUT);
-		assignToMain(RenderPipelines.TRANSLUCENT_TERRAIN, p -> ShaderKey.TERRAIN_TRANSLUCENT);
-		assignToMain(RenderPipelines.TRANSLUCENT_BLOCK, p -> ShaderKey.MOVING_BLOCK);
+		// 26.2: vanilla SectionRenderDispatcher still runs in parallel with sodium, creating parallel
+		// terrain draws that pile at world origin (chunk offset uniform isn't set on whatever path
+		// vanilla uses, beyond ChunkSectionsToRender.renderGroup which sodium already cancels).
+		// Removing these substitutions makes vanilla use its own (non-iris) terrain shader for those
+		// parallel draws. Sodium's chunk path uses SodiumPrograms directly, unaffected by this.
+		// TODO: find vanilla's parallel terrain draw path and disable it properly so we can restore these.
+		// assignToMain(RenderPipelines.SOLID_BLOCK, p -> ShaderKey.TERRAIN_SOLID);
+		// assignToMain(RenderPipelines.CUTOUT_BLOCK, p -> ShaderKey.TERRAIN_CUTOUT);
+		// assignToMain(RenderPipelines.SOLID_TERRAIN, p -> ShaderKey.TERRAIN_SOLID);
+		// assignToMain(RenderPipelines.CUTOUT_TERRAIN, p -> ShaderKey.TERRAIN_CUTOUT);
+		// assignToMain(RenderPipelines.TRANSLUCENT_TERRAIN, p -> ShaderKey.TERRAIN_TRANSLUCENT);
+		// assignToMain(RenderPipelines.TRANSLUCENT_BLOCK, p -> ShaderKey.MOVING_BLOCK);
 		assignToMain(RenderPipelines.WORLD_BORDER, p -> ShaderKey.TEXTURED);
 		assignToMain(RenderPipelines.ENTITY_CUTOUT, p -> getCutout(p));
 		assignToMain(RenderPipelines.ENTITY_CUTOUT_CULL, p -> getCutout(p));
 		assignToMain(RenderPipelines.ENTITY_CUTOUT_DISSOLVE, p -> getCutout(p));
-		assignToMain(RenderPipelines.ENTITY_TRANSLUCENT_CULL, p -> getTranslucent(p));
+		assignToMain(RenderPipelines.ENTITY_TRANSLUCENT_CULL, p -> getPlayerAwareTranslucent(p));
 		assignToMain(RenderPipelines.ITEM_TRANSLUCENT, p -> getTranslucent(p));
 		assignToMain(RenderPipelines.ITEM_CUTOUT, p -> getCutout(p));
-		assignToMain(RenderPipelines.ENTITY_TRANSLUCENT, p -> getTranslucent(p));
+		assignToMain(RenderPipelines.ENTITY_TRANSLUCENT, p -> getPlayerAwareTranslucent(p));
 		assignToMain(RenderPipelines.ENTITY_SHADOW, p -> getTranslucent(p));
 		assignToMain(RenderPipelines.LINES, p -> ShaderKey.LINES);
 		assignToMain(RenderPipelines.LINES_TRANSLUCENT, p -> ShaderKey.LINES);
@@ -81,12 +96,15 @@ public class IrisPipelines {
 		assignToMain(RenderPipelines.FLAT_CLOUDS, p -> ShaderKey.CLOUDS);
 		assignToMain(RenderPipelines.BANNER_PATTERN, p -> getTranslucent(p));
 
-		assignToShadow(RenderPipelines.SOLID_BLOCK, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
+		// assignToShadow(RenderPipelines.SOLID_BLOCK, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
 		assignToShadow(RenderPipelines.SOLID_TERRAIN, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
 		assignToShadow(RenderPipelines.CUTOUT_TERRAIN, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
 		assignToShadow(RenderPipelines.TRANSLUCENT_TERRAIN, p -> ShaderKey.SHADOW_TRANSLUCENT);
-		assignToShadow(RenderPipelines.CUTOUT_BLOCK, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
-		assignToShadow(RenderPipelines.TRANSLUCENT_BLOCK, p -> ShaderKey.SHADOW_TRANSLUCENT);
+		// Generic block-style immediate draws do not carry chunk-local terrain metadata.
+		// Keep the real terrain shadow pipelines overridden, but let vanilla block pipelines
+		// use their native shaders in the shadow pass until their safe path is identified.
+		// assignToShadow(RenderPipelines.CUTOUT_BLOCK, p -> ShaderKey.SHADOW_TERRAIN_CUTOUT);
+		// assignToShadow(RenderPipelines.TRANSLUCENT_BLOCK, p -> ShaderKey.SHADOW_TRANSLUCENT);
 		assignToShadow(RenderPipelines.ENTITY_CUTOUT, p -> ShaderKey.SHADOW_ENTITIES_CUTOUT);
 		assignToShadow(RenderPipelines.ARMOR_CUTOUT_NO_CULL, p -> ShaderKey.SHADOW_ENTITIES_CUTOUT);
 		assignToShadow(RenderPipelines.ARMOR_DECAL_CUTOUT_NO_CULL, p -> ShaderKey.SHADOW_ENTITIES_CUTOUT);
@@ -219,13 +237,57 @@ public class IrisPipelines {
 		}
 	}
 
+	private static ShaderKey getPlayerAwareTranslucent(Object p) {
+		if (ImmediateState.isRenderingPlayerEntity || isPlayerEntityActive()) {
+			return getCutout(p);
+		}
+
+		return getTranslucent(p);
+	}
+
+	private static boolean isPlayerEntityActive() {
+		Object2IntFunction<NamespacedId> entityIds = WorldRenderingSettings.INSTANCE.getEntityIds();
+		if (entityIds == null) {
+			return false;
+		}
+
+		int currentEntity = CapturedRenderingState.INSTANCE.getCurrentRenderedEntity();
+		if (currentEntity <= 0) {
+			return false;
+		}
+
+		return entityIds.containsKey(PLAYER) && currentEntity == entityIds.getInt(PLAYER)
+			|| entityIds.containsKey(CURRENT_PLAYER) && currentEntity == entityIds.getInt(CURRENT_PLAYER);
+	}
+
+	private static Function<IrisRenderingPipeline, ShaderKey> getCurrentPassMapping(RenderPipeline shader) {
+		if (ShadowRenderingState.areShadowsCurrentlyBeingRendered()) {
+			return coreShaderMapShadow.getOrDefault(shader, FAKE_FUNCTION);
+		} else {
+			return coreShaderMap.getOrDefault(shader, FAKE_FUNCTION);
+		}
+	}
+
+	public static boolean isBinarySearchDisabled(RenderPipeline shader) {
+		if (DEBUG_BINARY_SEARCH_DISABLED_BUCKET < 0 || DEBUG_BINARY_SEARCH_BUCKET_COUNT < 2) {
+			return false;
+		}
+
+		if (getCurrentPassMapping(shader) == FAKE_FUNCTION) {
+			return false;
+		}
+
+		return Math.floorMod(shader.getLocation().toString().hashCode(), DEBUG_BINARY_SEARCH_BUCKET_COUNT) == DEBUG_BINARY_SEARCH_DISABLED_BUCKET;
+	}
+
 	@Nullable
 	public static ShaderKey getPipeline(IrisRenderingPipeline pipeline, RenderPipeline shader) {
-		if (ShadowRenderingState.areShadowsCurrentlyBeingRendered()) {
-			return coreShaderMapShadow.getOrDefault(shader, FAKE_FUNCTION).apply(pipeline);
-		} else {
-			return coreShaderMap.getOrDefault(shader, FAKE_FUNCTION).apply(pipeline);
+		Function<IrisRenderingPipeline, ShaderKey> mapping = getCurrentPassMapping(shader);
+		if (mapping == FAKE_FUNCTION || isBinarySearchDisabled(shader)) {
+			return null;
 		}
+
+		return mapping.apply(pipeline);
 	}
 
 	public static void assignPipeline(RenderPipeline pipeline, ShaderKey programId) {

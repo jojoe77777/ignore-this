@@ -5,6 +5,10 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.irisshaders.iris.Iris;
+import net.irisshaders.iris.pipeline.IrisPipelines;
+import net.irisshaders.iris.pipeline.IrisRenderingPipeline;
+import net.irisshaders.iris.pipeline.WorldRenderingPipeline;
+import net.irisshaders.iris.pipeline.programs.ShaderKey;
 import net.irisshaders.iris.vertices.ImmediateState;
 import net.irisshaders.iris.vertices.IrisVertexFormats;
 import net.minecraft.client.renderer.ShaderDefines;
@@ -24,16 +28,27 @@ public class MixinRenderPipeline {
 	@Inject(method = "getVertexFormatBinding", at = @At("RETURN"), cancellable = true)
 	private void iris$change(int slot, CallbackInfoReturnable<VertexFormat> cir) {
 		if (slot != 0) return;
-		if (Iris.isPackInUseQuick() && ImmediateState.isRenderingLevel) {
-			VertexFormat vf = cir.getReturnValue();
-			if (vf == null) return;
-			if (vf.equals(DefaultVertexFormat.BLOCK)) {
-				cir.setReturnValue(IrisVertexFormats.TERRAIN);
-			} else if (vf.equals(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)) {
-				cir.setReturnValue(IrisVertexFormats.GLYPH);
-			} else if (vf.equals(DefaultVertexFormat.ENTITY)) {
-				cir.setReturnValue(IrisVertexFormats.ENTITY);
-			}
+		if (!Iris.isPackInUseQuick() || !ImmediateState.isRenderingLevel || ImmediateState.bypass || ImmediateState.temporarilyIgnorePass) {
+			return;
+		}
+
+		WorldRenderingPipeline pipeline = Iris.getPipelineManager().getPipelineNullable();
+		if (!(pipeline instanceof IrisRenderingPipeline irisPipeline) || !irisPipeline.shouldOverrideShaders()) {
+			return;
+		}
+
+		ShaderKey shaderKey = IrisPipelines.getPipeline(irisPipeline, (RenderPipeline) (Object) this);
+		if (shaderKey == null) {
+			return;
+		}
+
+		VertexFormat vertexFormat = shaderKey.getVertexFormat();
+		if (ImmediateState.isImmediateVertexExtensionDebugDisabled(vertexFormat)) {
+			return;
+		}
+
+		if (vertexFormat == IrisVertexFormats.TERRAIN || vertexFormat == IrisVertexFormats.ENTITY || vertexFormat == IrisVertexFormats.GLYPH) {
+			cir.setReturnValue(vertexFormat);
 		}
 	}
 }

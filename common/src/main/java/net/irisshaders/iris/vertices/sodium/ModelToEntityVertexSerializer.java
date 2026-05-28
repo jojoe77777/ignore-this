@@ -10,6 +10,7 @@ import net.irisshaders.iris.vertices.MemoryAccess;
 import net.irisshaders.iris.vertices.NormalHelper;
 
 public class ModelToEntityVertexSerializer implements VertexSerializer {
+    private static final int OFFSET_TEXTURE = 16;
 
 	private static final int MIDCOORD = IrisVertexFormats.getOffset(IrisVertexFormats.ENTITY, IrisVertexFormats.MID_TEXTURE_ELEMENT);
 	private static final int TANGENT = IrisVertexFormats.getOffset(IrisVertexFormats.ENTITY, IrisVertexFormats.TANGENT_ELEMENT);
@@ -20,6 +21,7 @@ public class ModelToEntityVertexSerializer implements VertexSerializer {
 	@Override
 	public void serialize(long srcBase, long dstBase, int vertexCount) {
 		final int quadCount = vertexCount >> 2; // divide by 4
+		final int quadVertexCount = quadCount << 2;
 
 		final short entity = (short) CapturedRenderingState.INSTANCE.getCurrentRenderedEntity();
 		final short blockEntity = (short) CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity();
@@ -88,6 +90,21 @@ public class ModelToEntityVertexSerializer implements VertexSerializer {
 
 			src += SRC_STRIDE * 4;
 			dst += DST_STRIDE * 4;
+		}
+
+		for (int vertexIndex = quadVertexCount; vertexIndex < vertexCount; vertexIndex++) {
+			MemoryIntrinsics.copyMemory(src, dst, 36);
+
+			MemoryAccess.setShort(dst + 36, entity);
+			MemoryAccess.setShort(dst + 38, blockEntity);
+			MemoryAccess.setShort(dst + 40, item);
+
+			MemoryAccess.setFloat(dst + MIDCOORD, MemoryAccess.getFloat(src + OFFSET_TEXTURE));
+			MemoryAccess.setFloat(dst + MIDCOORD + 4, MemoryAccess.getFloat(src + OFFSET_TEXTURE + 4));
+			MemoryAccess.setInt(dst + TANGENT, 0);
+
+			src += SRC_STRIDE;
+			dst += DST_STRIDE;
 		}
 	}
 }

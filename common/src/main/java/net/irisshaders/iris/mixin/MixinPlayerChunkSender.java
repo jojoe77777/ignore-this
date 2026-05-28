@@ -30,11 +30,17 @@ public abstract class MixinPlayerChunkSender {
 
 	@Inject(method = "markChunkPendingToSend", at = @At("HEAD"))
 	private void iris$logPcsMark(LevelChunk chunk, CallbackInfo ci) {
-		IrisServerInstr.pcsMark();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.pcsMark();
+		}
 	}
 
 	@Inject(method = "sendNextChunks", at = @At("HEAD"))
 	private void iris$logSendNextChunks(ServerPlayer player, CallbackInfo ci) {
+		if (!IrisServerInstr.ENABLED) {
+			return;
+		}
+
 		iris$sendCalls++;
 		iris$lastPending = pendingChunks.size();
 		iris$lastUnack = unacknowledgedBatches;

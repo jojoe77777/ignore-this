@@ -40,6 +40,7 @@ import org.joml.Matrix4fc;
 public class HandRenderer {
 	public static final HandRenderer INSTANCE = new HandRenderer();
 	public static final float DEPTH = 0.125F;
+	private static final boolean DEBUG_USE_VANILLA_HAND_RENDERING = true;
 	private final RenderBuffers bufferSource = new RenderBuffers(Runtime.getRuntime().availableProcessors());
 	private final ProjectionMatrixBuffer cachedProjectionMatrixBuffer = new ProjectionMatrixBuffer("hand (Iris)");
 	private boolean ACTIVE;
@@ -92,6 +93,10 @@ public class HandRenderer {
 	}
 
 	public void renderSolid(Matrix4fc modelMatrix, float tickDelta, Camera camera, CameraRenderState cameraState, GameRenderer gameRenderer, WorldRenderingPipeline pipeline) {
+		if (DEBUG_USE_VANILLA_HAND_RENDERING) {
+			return;
+		}
+
 		if (!canRender(camera, gameRenderer) || !gameRenderer.itemInHandRenderer.iris$isAnyHandSolid() || !Iris.isPackInUseQuick()) {
 			return;
 		}
@@ -130,6 +135,11 @@ public class HandRenderer {
 	}
 
 	public void renderTranslucent(Matrix4fc modelMatrix, float tickDelta, Camera camera, CameraRenderState cameraState, GameRenderer gameRenderer, WorldRenderingPipeline pipeline) {
+		if (DEBUG_USE_VANILLA_HAND_RENDERING) {
+			bufferSource.endFrame();
+			return;
+		}
+
 		if (!canRender(camera, gameRenderer) || !gameRenderer.itemInHandRenderer.iris$isAnyHandTranslucent() || !Iris.isPackInUseQuick()) {
 			bufferSource.endFrame();
 
@@ -169,6 +179,10 @@ public class HandRenderer {
 
 	public boolean isActive() {
 		return ACTIVE;
+	}
+
+	public boolean iris$useVanillaHandRendering() {
+		return DEBUG_USE_VANILLA_HAND_RENDERING;
 	}
 
 	public boolean isRenderingSolid() {

@@ -64,7 +64,7 @@ public abstract class MixinShaderManager_Overrides {
 
 			if (program != null) {
 				cir.setReturnValue(new GlRenderPipeline(renderPipeline, program));
-			} else if (missingShaders.add(renderPipeline)) {
+			} else if (!IrisPipelines.isBinarySearchDisabled(renderPipeline) && missingShaders.add(renderPipeline)) {
 				if (renderPipeline.getLocation().getNamespace().equals("minecraft")) {
 					Iris.logger.fatal("Missing program " + renderPipeline.getLocation() + " in override list. This is likely an Iris bug!!!", new Throwable());
 				} else {

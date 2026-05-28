@@ -46,6 +46,12 @@ public class MixinEntityRenderDispatcher {
 	@Unique
 	private static final Object2ObjectMap<EntityType<?>, NamespacedId> ENTITY_IDS = new Object2ObjectOpenHashMap<>();
 
+	@Inject(method = "submit", at = @At("HEAD"))
+	private <E extends Entity, S extends EntityRenderState> void iris$beginEntityScope(S entity, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
+		ImmediateState.isRenderingEntities = true;
+		ImmediateState.isRenderingPlayerEntity = entity instanceof AvatarRenderState;
+	}
+
 	// Inject after MatrixStack#push since at this point we know that most cancellation checks have already passed.
 	@Inject(method = "submit", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;pushPose()V", shift = At.Shift.AFTER))
 	private <E extends Entity, S extends EntityRenderState> void iris$beginEntityRender(S entity, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
@@ -86,5 +92,11 @@ public class MixinEntityRenderDispatcher {
 	private<E extends Entity, S extends EntityRenderState> void iris$endEntityRender(S entityRenderState, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
 		CapturedRenderingState.INSTANCE.setCurrentEntity(0);
 		CapturedRenderingState.INSTANCE.setCurrentRenderedItem(0);
+	}
+
+	@Inject(method = "submit", at = @At("RETURN"))
+	private<E extends Entity, S extends EntityRenderState> void iris$endEntityScope(S entityRenderState, CameraRenderState cameraRenderState, double d, double e, double f, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CallbackInfo ci) {
+		ImmediateState.isRenderingPlayerEntity = false;
+		ImmediateState.isRenderingEntities = false;
 	}
 }

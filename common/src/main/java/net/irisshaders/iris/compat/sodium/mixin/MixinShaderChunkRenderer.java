@@ -29,6 +29,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = ShaderChunkRenderer.class, remap = false)
 public abstract class MixinShaderChunkRenderer {
+	private static final boolean DEBUG_DISABLE_SODIUM_TERRAIN_OVERRIDE = false;
+
 	@Shadow
 	protected abstract GlProgram<ChunkShaderInterface> compileProgram(ChunkShaderOptions options);
 
@@ -40,6 +42,10 @@ public abstract class MixinShaderChunkRenderer {
 	@Redirect(method = "begin", at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/ShaderChunkRenderer;compileProgram(Lnet/caffeinemc/mods/sodium/client/render/chunk/shader/ChunkShaderOptions;)Lnet/caffeinemc/mods/sodium/client/gl/shader/GlProgram;"))
 	private GlProgram<ChunkShaderInterface> redirectIrisProgram(ShaderChunkRenderer instance, ChunkShaderOptions options, TerrainRenderPass pass) {
 		WorldRenderingPipeline pipeline = Iris.getPipelineManager().getPipelineNullable();
+
+		if (DEBUG_DISABLE_SODIUM_TERRAIN_OVERRIDE) {
+			return this.compileProgram(options);
+		}
 
 		GlProgram<ChunkShaderInterface> program = null;
 

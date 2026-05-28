@@ -7,6 +7,7 @@ import net.irisshaders.iris.mixinterface.ItemContextState;
 import net.irisshaders.iris.shaderpack.materialmap.NamespacedId;
 import net.irisshaders.iris.shaderpack.materialmap.WorldRenderingSettings;
 import net.irisshaders.iris.uniforms.CapturedRenderingState;
+import net.irisshaders.iris.vertices.ImmediateState;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -33,12 +34,14 @@ public class ItemStackStateLayerMixin {
 
 	@Inject(method = "submit", at = @At("HEAD"))
 	private void onRender(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, int j, int k, CallbackInfo ci, @Share("lastBState") LocalIntRef ref) {
+		ImmediateState.isRenderingItems = true;
 		ref.set(CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity());
 		iris$setupId(((ItemContextState) parentState).getDisplayItem(), ((ItemContextState) parentState).getDisplayItemModel());
 	}
 
 	@Inject(method = "submit", at = @At("TAIL"))
 	private void onRenderEnd(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int i, int j, int k, CallbackInfo ci, @Share("lastBState") LocalIntRef ref) {
+		ImmediateState.isRenderingItems = false;
 		CapturedRenderingState.INSTANCE.setCurrentBlockEntity(ref.get());
 		CapturedRenderingState.INSTANCE.setCurrentRenderedItem(0);
 	}

@@ -18,47 +18,66 @@ public abstract class MixinChunkMap {
 	@Inject(method = "markChunkPendingToSend(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/level/ChunkPos;)V",
 		at = @At("HEAD"))
 	private void iris$logMarkPendingPos(ServerPlayer p, net.minecraft.world.level.ChunkPos pos, CallbackInfo ci) {
-		IrisServerInstr.markPendingInstance();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.markPendingInstance();
+		}
 	}
 
 	@Inject(method = "markChunkPendingToSend(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/level/chunk/LevelChunk;)V",
 		at = @At("HEAD"))
 	private static void iris$logMarkPendingChunk(ServerPlayer p, net.minecraft.world.level.chunk.LevelChunk chunk, CallbackInfo ci) {
-		IrisServerInstr.markPendingStatic();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.markPendingStatic();
+		}
 	}
 
 	@Inject(method = "move(Lnet/minecraft/server/level/ServerPlayer;)V", at = @At("HEAD"))
 	private void iris$logMove(ServerPlayer p, CallbackInfo ci) {
-		IrisServerInstr.moveCall(p.getX(), p.getY(), p.getZ());
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.moveCall(p.getX(), p.getY(), p.getZ());
+		}
 	}
 
 	@Inject(method = "updateChunkTracking", at = @At("HEAD"))
 	private void iris$logUpdateChunkTracking(ServerPlayer p, CallbackInfo ci) {
-		IrisServerInstr.updateChunkTracking();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.updateChunkTracking();
+		}
 	}
 
 	@Inject(method = "updatePlayerPos", at = @At("HEAD"))
 	private void iris$logUpdatePlayerPos(ServerPlayer p, CallbackInfo ci) {
-		IrisServerInstr.updatePlayerPos();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.updatePlayerPos();
+		}
 	}
 
 	@Inject(method = "updatePlayerStatus", at = @At("HEAD"))
 	private void iris$logUpdatePlayerStatus(ServerPlayer p, boolean added, CallbackInfo ci) {
-		IrisServerInstr.updatePlayerStatus();
+		if (IrisServerInstr.ENABLED) {
+			IrisServerInstr.updatePlayerStatus();
+		}
 	}
 
 	@ModifyExpressionValue(method = "getChunkToSend",
 		at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/server/level/ChunkMap;getVisibleChunkIfPresent(J)Lnet/minecraft/server/level/ChunkHolder;"))
 	private ChunkHolder iris$peekHolderInGCTS(ChunkHolder original) {
-		if (original == null) IrisServerInstr.gctsVisNull();
+		if (original == null && IrisServerInstr.ENABLED) {
+			IrisServerInstr.gctsVisNull();
+		}
 		return original;
 	}
 
 	@ModifyReturnValue(method = "getChunkToSend", at = @At("RETURN"))
 	private LevelChunk iris$logGetChunkToSend(LevelChunk original) {
-		if (original == null) IrisServerInstr.gctsChunkNull();
-		else IrisServerInstr.gctsOk();
+		if (IrisServerInstr.ENABLED) {
+			if (original == null) {
+				IrisServerInstr.gctsChunkNull();
+			} else {
+				IrisServerInstr.gctsOk();
+			}
+		}
 		return original;
 	}
 }

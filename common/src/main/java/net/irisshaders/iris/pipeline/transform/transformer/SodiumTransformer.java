@@ -98,6 +98,8 @@ public class SodiumTransformer {
 			// inject in reverse order if performed piece-wise but in correct order if
 			// performed as an array of injections)
 			injectVertInit(t, tree, root, parameters, needsNormal);
+
+			// (diagnostic gl_Position override removed — sodium chunks are not the spike source)
 		} else {
 			tree.parseAndInjectNodes(t, ASTInjectionPoint.BEFORE_DECLARATIONS,
 				"uniform mat4 iris_ModelViewMatrix;",
