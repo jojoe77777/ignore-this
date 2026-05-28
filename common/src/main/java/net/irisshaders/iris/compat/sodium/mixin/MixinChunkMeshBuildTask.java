@@ -60,14 +60,19 @@ public class MixinChunkMeshBuildTask {
 	private void iris$onRenderModel(ChunkBuildContext buildContext, CancellationToken cancellationToken, CallbackInfoReturnable<ChunkBuildOutput> cir, @Local ChunkBuildBuffers buffers, @Local BlockState blockState, @Local(ordinal = 0) BlockPos.MutableBlockPos blockPos, @Local BlockRenderer blockRenderer) {
 		if (WorldRenderingSettings.INSTANCE.getBlockStateIds() == null) return;
 
-		((VertexEncoderInterface) blockRenderer).beginBlock(WorldRenderingSettings.INSTANCE.getBlockStateIds().getOrDefault(blockState, -1), (byte) 0, (byte) blockState.getLightEmission(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+		// beginBlock expects chunk-local block coordinates (0..15) because ExtendedDataHelper.computeMidBlock
+		// subtracts vertex.xyz (also chunk-local) from these. The iris$setLightBlock path masks with & 15
+		// already; this path was passing the full world position, producing huge centred offsets that
+		// packMidBlock then wrapped to a random byte per block — feeding shader-pack displacement effects
+		// with garbage and producing the radial "lines to infinity" artifact.
+		((VertexEncoderInterface) blockRenderer).beginBlock(WorldRenderingSettings.INSTANCE.getBlockStateIds().getOrDefault(blockState, -1), (byte) 0, (byte) blockState.getLightEmission(), blockPos.getX() & 15, blockPos.getY() & 15, blockPos.getZ() & 15);
 	}
 
 	@Inject(method = "execute(Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildContext;Lnet/caffeinemc/mods/sodium/client/util/task/CancellationToken;)Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildOutput;", at = @At(value = "INVOKE", target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/pipeline/FluidRenderer;render(Lnet/caffeinemc/mods/sodium/client/world/LevelSlice;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/world/level/material/FluidState;Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;Lnet/caffeinemc/mods/sodium/client/render/chunk/translucent_sorting/TranslucentGeometryCollector;Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildBuffers;)V"))
 	private void iris$onRenderLiquid(ChunkBuildContext buildContext, CancellationToken cancellationToken, CallbackInfoReturnable<ChunkBuildOutput> cir, @Local ChunkBuildBuffers buffers, @Local BlockState blockState, @Local FluidState fluidState, @Local(ordinal = 0) BlockPos.MutableBlockPos blockPos, @Local BlockRenderCache cache) {
 		if (WorldRenderingSettings.INSTANCE.getBlockStateIds() == null) return;
 
-		((VertexEncoderInterface) cache.getFluidRenderer()).beginBlock(WorldRenderingSettings.INSTANCE.getBlockStateIds().getInt(fluidState.createLegacyBlock()), (byte) 1, (byte) blockState.getLightEmission(), blockPos.getX(), blockPos.getY(), blockPos.getZ());
+		((VertexEncoderInterface) cache.getFluidRenderer()).beginBlock(WorldRenderingSettings.INSTANCE.getBlockStateIds().getInt(fluidState.createLegacyBlock()), (byte) 1, (byte) blockState.getLightEmission(), blockPos.getX() & 15, blockPos.getY() & 15, blockPos.getZ() & 15);
 	}
 
 	@Inject(method = "execute(Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildContext;Lnet/caffeinemc/mods/sodium/client/util/task/CancellationToken;)Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildOutput;", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;isSolidRender()Z"))
