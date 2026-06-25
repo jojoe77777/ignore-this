@@ -7,7 +7,7 @@ import net.irisshaders.iris.vertices.ImmediateState;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.UvMapping;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -43,7 +43,7 @@ public class MixinModelSubmit implements ModelStorage {
 	}
 
 	@Inject(method = "<init>", at = @At("RETURN"))
-	private <S> void iris$captureOnInit(RenderType renderType, PoseStack.Pose pose, Model<? super S> model, S state, int lightCoords, int overlayCoords, int tintedColor, TextureAtlasSprite sprite, PoseStack.Pose sheetedDecalPose, CallbackInfo ci) {
+	private <S> void iris$captureOnInit(RenderType renderType, PoseStack.Pose pose, Model<? super S> model, S state, int lightCoords, int overlayCoords, int tintedColor, UvMapping sprite, PoseStack.Pose sheetedDecalPose, CallbackInfo ci) {
 		iris$capture();
 	}
 }

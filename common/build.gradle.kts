@@ -52,9 +52,9 @@ dependencies {
 
     implementation("net.fabricmc:fabric-loader:$FABRIC_LOADER_VERSION")
 
-    compileOnly("net.fabricmc.fabric-api:fabric-block-getter-api-v2:2.0.7+ec56b601c5")
-    compileOnly("net.fabricmc.fabric-api:fabric-resource-loader-v1:2.0.12+d3d84472c5")
-    compileOnly("net.fabricmc.fabric-api:fabric-renderer-api-v1:13.0.4+c80601bb4c")
+    compileOnly("net.fabricmc.fabric-api:fabric-block-getter-api-v2:2.0.7+ec56b601f5")
+    compileOnly("net.fabricmc.fabric-api:fabric-resource-loader-v1:2.0.14+64ade209f5")
+    compileOnly("net.fabricmc.fabric-api:fabric-renderer-api-v1:14.1.1+64ade209f5")
 
     implementation(SODIUM_DEPENDENCY_FABRIC)
     compileOnly("org.antlr:antlr4-runtime:4.13.1")

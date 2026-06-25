@@ -11,7 +11,7 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.renderer.texture.UvMapping;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
  
@@ -19,12 +19,12 @@ import org.spongepowered.asm.mixin.Mixin;
 @Mixin(SubmitNodeCollection.class)
 public class MixinModelStorageTrigger {
 	@WrapMethod(method = "submitModel")
-	private <S> void iris$changeRenderType(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable TextureAtlasSprite textureAtlasSprite, int l, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay, Operation<Void> original) {
+	private <S> void iris$changeRenderType(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable UvMapping uvMapping, int l, ModelFeatureRenderer.@Nullable CrumblingOverlay crumblingOverlay, Operation<Void> original) {
 		if (ImmediateState.isRenderingBEs) {
 			renderType = OuterWrappedRenderType.wrapExactlyOnce("iris:block_entity", renderType, BlockEntityRenderStateShard.INSTANCE);
 		}
 
-		original.call(model, object, poseStack, renderType, i, j, k, textureAtlasSprite, l, crumblingOverlay);
+		original.call(model, object, poseStack, renderType, i, j, k, uvMapping, l, crumblingOverlay);
 	}
 
 	@WrapMethod(method = "submitCustomGeometry")
