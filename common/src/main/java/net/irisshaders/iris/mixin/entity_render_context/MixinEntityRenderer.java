@@ -1,6 +1,7 @@
 package net.irisshaders.iris.mixin.entity_render_context;
 
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
+import net.irisshaders.iris.Iris;
 import net.irisshaders.iris.shaderpack.materialmap.NamespacedId;
 import net.irisshaders.iris.shaderpack.materialmap.WorldRenderingSettings;
 import net.irisshaders.iris.uniforms.CapturedRenderingState;
@@ -24,8 +25,15 @@ public class MixinEntityRenderer {
     @Unique
     private int lastId = -100;
 
-    @Inject(method = "buildGroup", at = @At("HEAD"))
+    @Inject(method = "buildGroup", at = @At("HEAD"), cancellable = true)
     private void setNameTagId(FeatureFrameContext featureFrameContext, List<NameTagFeatureRenderer.Submit> submits, CallbackInfo ci) {
+        // Don't render nametags at all while an Iris shader pipeline is active.
+        // Cancel before touching any state so the @At("RETURN") reset is unnecessary.
+        if (Iris.isPackInUseQuick()) {
+            ci.cancel();
+            return;
+        }
+
         Object2IntFunction<NamespacedId> entityIds = WorldRenderingSettings.INSTANCE.getEntityIds();
 
         if (entityIds == null) return;

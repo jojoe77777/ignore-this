@@ -125,17 +125,12 @@ public abstract class MixinRenderSectionManagerShadow implements ShadowRenderLis
 	@WrapMethod(method = "createTerrainRenderList")
 	private boolean updateShadowRenderLists(Camera camera, Viewport viewport, FogParameters fogParameters, int frame, boolean spectator, Operation<Boolean> original) {
 		boolean isShadow = ShadowRenderingState.areShadowsCurrentlyBeingRendered();
-		boolean stateBefore = this.renderListStateIsShadow;
-		boolean needsShadowUpd = this.shadowNeedsRenderListUpdate;
 		if (!isShadow) {
 			this.iris$swapToRegularRenderLists();
 		} else {
 			if (this.shadowNeedsRenderListUpdate) {
 				this.iris$swapToShadowRenderLists();
 			}
-		}
-		if (net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.ENABLED) {
-			net.irisshaders.iris.compat.sodium.IrisSodiumDebugLog.maybeLog(frame, isShadow, stateBefore, this.renderListStateIsShadow, needsShadowUpd);
 		}
 		return original.call(camera, viewport, fogParameters, frame, spectator);
 	}
